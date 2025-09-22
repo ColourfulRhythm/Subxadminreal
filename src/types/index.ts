@@ -22,6 +22,7 @@ export interface User {
   updated_at?: Date
   date_of_birth?: string
   source_table?: string
+  status?: string // Added for compatibility
 }
 
 export interface PortfolioItem {
@@ -99,6 +100,18 @@ export interface InvestmentRequest {
   referralCommission?: number
   paymentMethod: string
   paymentStatus: 'pending' | 'verified' | 'failed'
+  // Legacy snake_case properties for Firebase compatibility
+  user_id?: string
+  user_name?: string
+  user_email?: string
+  plot_name?: string
+  project_title?: string
+  price_per_sqm?: number
+  payment_status?: string
+  payment_method?: string
+  referral_code?: string
+  referral_commission?: number
+  created_at?: Date
 }
 
 export interface WithdrawalRequest {

@@ -49,7 +49,7 @@ export default function InvestmentRequests() {
   })
 
   const statusDistribution = [
-    { name: 'Pending', value: displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length, color: '#f59e0b' },
+    { name: 'Pending', value: displayRequests.filter(r => r.status === 'pending').length, color: '#f59e0b' },
     { name: 'Approved', value: displayRequests.filter(r => r.status === 'approved').length, color: '#22c55e' },
     { name: 'Rejected', value: displayRequests.filter(r => r.status === 'rejected').length, color: '#ef4444' },
     { name: 'Completed', value: displayRequests.filter(r => r.status === 'completed').length, color: '#3b82f6' },
@@ -84,15 +84,8 @@ export default function InvestmentRequests() {
       console.log(`Successfully ${action}d request ${requestId}`)
       
       // Update local state for immediate UI feedback
-      setRequests(prev => prev.map(req => 
-        req.id === requestId 
-          ? { 
-              ...req, 
-              status: newStatus,
-              processedAt: new Date()
-            }
-          : req
-      ))
+      // Note: The useInvestmentRequests hook will refetch data automatically
+      console.log('Request updated successfully')
     } catch (error) {
       console.error(`Error ${action}ing request ${requestId}:`, error)
       alert(`Failed to ${action} request. Please try again.`)
@@ -175,10 +168,9 @@ export default function InvestmentRequests() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-      case 'pending_approval':
-        return 'bg-yellow-100 text-yellow-800'
+      switch (status) {
+        case 'pending':
+          return 'bg-yellow-100 text-yellow-800'
       case 'approved':
         return 'bg-green-100 text-green-800'
       case 'rejected':
@@ -204,10 +196,9 @@ export default function InvestmentRequests() {
   }
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-      case 'pending_approval':
-        return <Clock className="h-4 w-4" />
+      switch (status) {
+        case 'pending':
+          return <Clock className="h-4 w-4" />
       case 'approved':
         return <CheckCircle className="h-4 w-4" />
       case 'rejected':
@@ -282,7 +273,7 @@ export default function InvestmentRequests() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-bold text-gray-900">
-                {displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length}
+                {displayRequests.filter(r => r.status === 'pending').length}
               </p>
             </div>
           </div>
@@ -533,7 +524,7 @@ export default function InvestmentRequests() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {(request.status === 'pending' || request.status === 'pending_approval') && (
+                      {request.status === 'pending' && (
                         <>
                           <button
                             onClick={() => handleRequestAction(request.id, 'approve')}
@@ -665,7 +656,7 @@ export default function InvestmentRequests() {
                 <div>
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Actions</h4>
                   <div className="space-y-3">
-                    {(selectedRequest.status === 'pending' || selectedRequest.status === 'pending_approval') && (
+                    {selectedRequest.status === 'pending' && (
                       <>
                         <button
                           onClick={() => {
