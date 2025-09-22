@@ -16,8 +16,10 @@ import {
 } from 'lucide-react'
 import { InvestmentRequest } from '../types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
 
 export default function InvestmentRequests() {
+  const { data: firebaseRequests, loading, error } = useInvestmentRequests()
   const [requests, setRequests] = useState<InvestmentRequest[]>([
     {
       id: '1',
@@ -97,7 +99,10 @@ export default function InvestmentRequests() {
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'disconnected' | 'error'>('connected')
 
-  const filteredRequests = requests.filter(request => {
+  // Use real Firebase data if available, otherwise fallback to mock data
+  const displayRequests = firebaseRequests.length > 0 ? firebaseRequests : requests
+  
+  const filteredRequests = displayRequests.filter(request => {
     const matchesSearch = request.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          request.plotName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -155,9 +160,12 @@ export default function InvestmentRequests() {
 
   const testFirebaseConnection = async () => {
     setFirebaseStatus('connected')
-    // Simulate connection test
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setFirebaseStatus('connected')
+    try {
+      const result = await firebaseUtils.testConnection()
+      setFirebaseStatus(result.connected ? 'connected' : 'error')
+    } catch (error) {
+      setFirebaseStatus('error')
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -228,6 +236,16 @@ export default function InvestmentRequests() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Investment Requests</h1>
           <p className="text-gray-600">Manage investment requests and process approvals</p>
+          {firebaseRequests.length > 0 && (
+            <p className="text-sm text-green-600 mt-1">
+              🔗 Connected to Firebase - {firebaseRequests.length} real requests loaded
+            </p>
+          )}
+          {error && (
+            <p className="text-sm text-red-600 mt-1">
+              ❌ Firebase Error: {error}
+            </p>
+          )}
         </div>
         <div className="flex space-x-3">
           <button
@@ -259,7 +277,9 @@ export default function InvestmentRequests() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Requests</p>
-              <p className="text-2xl font-bold text-gray-900">{requests.length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? 'Loading...' : displayRequests.length}
+              </p>
             </div>
           </div>
         </div>

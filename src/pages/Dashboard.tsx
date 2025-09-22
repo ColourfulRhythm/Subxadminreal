@@ -11,9 +11,11 @@ import {
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
 import { DashboardStats, RecentActivity } from '../types'
+import { useDashboardStats } from '../hooks/useFirebase'
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats>({
+  const { stats, loading, error } = useDashboardStats()
+  const [localStats, setLocalStats] = useState<DashboardStats>({
     totalUsers: 1247,
     totalProjects: 15,
     totalPlots: 234,
@@ -80,17 +82,13 @@ export default function Dashboard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate API call
+    // The stats will be refreshed automatically by the useDashboardStats hook
     await new Promise(resolve => setTimeout(resolve, 1000))
-    setStats(prev => ({
-      ...prev,
-      systemHealth: {
-        ...prev.systemHealth,
-        lastSync: new Date()
-      }
-    }))
     setIsRefreshing(false)
   }
+
+  // Use real Firebase data if available, otherwise fallback to local stats
+  const displayStats = stats || localStats
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -126,6 +124,21 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
           <p className="text-gray-600">Real-time platform statistics and system monitoring</p>
+          {stats && (
+            <p className="text-sm text-green-600 mt-1">
+              🔗 Connected to Firebase - Live data from subx-825e9
+            </p>
+          )}
+          {loading && (
+            <p className="text-sm text-yellow-600 mt-1">
+              ⏳ Loading data from Firebase...
+            </p>
+          )}
+          {error && (
+            <p className="text-sm text-red-600 mt-1">
+              ❌ Firebase Error: {error}
+            </p>
+          )}
         </div>
         <button
           onClick={handleRefresh}
@@ -146,7 +159,9 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalUsers)}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? 'Loading...' : formatNumber(displayStats.totalUsers)}
+              </p>
             </div>
           </div>
         </div>

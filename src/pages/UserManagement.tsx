@@ -12,8 +12,10 @@ import {
   Users
 } from 'lucide-react'
 import { User } from '../types'
+import { useUsers } from '../hooks/useFirebase'
 
 export default function UserManagement() {
+  const { data: firebaseUsers, loading, error } = useUsers()
   const [users] = useState<User[]>([
     {
       id: '1',
@@ -59,7 +61,10 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
 
-  const filteredUsers = users.filter(user => {
+  // Use real Firebase data if available, otherwise fallback to mock data
+  const displayUsers = firebaseUsers.length > 0 ? firebaseUsers : users
+  
+  const filteredUsers = displayUsers.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -120,7 +125,9 @@ export default function UserManagement() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {loading ? 'Loading...' : displayUsers.length}
+              </p>
             </div>
           </div>
         </div>
