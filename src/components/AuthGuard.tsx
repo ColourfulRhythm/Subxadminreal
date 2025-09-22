@@ -43,6 +43,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return <LoginForm />
   }
 
+  // Additional security check - only allow specific admin email
+  if (user.email !== 'subx@focalpointdev.com') {
+    // Sign out unauthorized user
+    signOut(auth)
+    return <LoginForm />
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar with user info and logout */}

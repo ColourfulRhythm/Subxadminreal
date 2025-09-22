@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { createAdminUser, setupDefaultAdmin } from '../utils/adminSetup'
+import { setupDefaultAdmin } from '../utils/adminSetup'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function LoginForm() {
@@ -11,7 +11,6 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
 
   const createDefaultAdmin = async () => {
     setLoading(true)
@@ -20,11 +19,11 @@ export default function LoginForm() {
     
     try {
       await setupDefaultAdmin()
-      setEmail('admin@subx.com')
-      setPassword('admin123')
-      setSuccess('Default admin account created! You can now sign in.')
+      setEmail('subx@focalpointdev.com')
+      setPassword('SubxAdmin2024!')
+      setSuccess('Admin account created! You can now sign in.')
     } catch (error: any) {
-      setError('Error creating default admin: ' + error.message)
+      setError('Error creating admin account: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -37,13 +36,14 @@ export default function LoginForm() {
     setSuccess('')
 
     try {
-      if (isSignUp) {
-        await createAdminUser(email, password)
-        setSuccess('Admin account created successfully! You are now logged in.')
-      } else {
-        await signInWithEmailAndPassword(auth, email, password)
-        setSuccess('Login successful!')
+      // Only allow sign in for the specific admin email
+      if (email !== 'subx@focalpointdev.com') {
+        setError('Access denied. Only authorized administrators can access this system.')
+        return
       }
+      
+      await signInWithEmailAndPassword(auth, email, password)
+      setSuccess('Login successful!')
     } catch (error: any) {
       console.error('Auth error:', error)
       switch (error.code) {
@@ -80,14 +80,11 @@ export default function LoginForm() {
           <div className="mx-auto h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center">
             <Lock className="h-8 w-8 text-blue-600" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            {isSignUp ? 'Create Admin Account' : 'Sign in to Admin Dashboard'}
+            <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+            Sign in to Admin Dashboard
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isSignUp 
-              ? 'Create a new admin account for the Subx platform'
-              : 'Access the Subx admin dashboard with your credentials'
-            }
+            Access the Subx admin dashboard with authorized credentials
           </p>
         </div>
 
@@ -153,7 +150,7 @@ export default function LoginForm() {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  autoComplete="current-password"
                   required
                   className="input-field pl-10 pr-10"
                   placeholder="Enter your password"
@@ -184,36 +181,25 @@ export default function LoginForm() {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {isSignUp ? 'Creating Account...' : 'Signing in...'}
+                  Signing in...
                 </div>
               ) : (
-                isSignUp ? 'Create Account' : 'Sign in'
+                'Sign in'
               )}
             </button>
           </div>
 
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-blue-600 hover:text-blue-500 font-medium"
-            >
-              {isSignUp 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Create one"
-              }
-            </button>
-          </div>
+          {/* Remove sign up option - only admin can access */}
         </form>
 
         <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h3>
+          <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Access Only:</h3>
           <p className="text-sm text-blue-700">
-            <strong>Email:</strong> admin@subx.com<br />
-            <strong>Password:</strong> admin123
+            <strong>Email:</strong> subx@focalpointdev.com<br />
+            <strong>Password:</strong> SubxAdmin2024!
           </p>
           <p className="text-xs text-blue-600 mt-2">
-            You can use these credentials or create a new account.
+            Only authorized administrators can access this system.
           </p>
           <button
             type="button"
@@ -221,7 +207,7 @@ export default function LoginForm() {
             disabled={loading}
             className="mt-3 w-full btn-secondary text-sm py-2"
           >
-            {loading ? 'Creating...' : 'Create Default Admin Account'}
+            {loading ? 'Creating...' : 'Create Admin Account'}
           </button>
         </div>
       </div>

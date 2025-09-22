@@ -44,16 +44,16 @@ export async function signInAdmin(email: string, password: string) {
   }
 }
 
-// Demo function to create the default admin account
+// Function to create the authorized admin account
 export async function setupDefaultAdmin() {
   try {
-    await createAdminUser('admin@subx.com', 'admin123')
-    console.log('Default admin account created successfully!')
+    await createAdminUser('subx@focalpointdev.com', 'SubxAdmin2024!')
+    console.log('Admin account created successfully!')
   } catch (error: any) {
     if (error.code === 'auth/email-already-in-use') {
       console.log('Admin account already exists')
     } else {
-      console.error('Error setting up default admin:', error)
+      console.error('Error setting up admin account:', error)
     }
   }
 }
