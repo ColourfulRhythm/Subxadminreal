@@ -22,9 +22,15 @@ export default function WithdrawalManagement() {
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<WithdrawalRequest | null>(null)
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false)
 
-  const filteredWithdrawals = withdrawals.filter(withdrawal => {
-    const matchesSearch = withdrawal.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         withdrawal.userEmail.toLowerCase().includes(searchTerm.toLowerCase())
+  // Ensure withdrawals is an array
+  const safeWithdrawals = Array.isArray(withdrawals) ? withdrawals : []
+
+  const filteredWithdrawals = safeWithdrawals.filter(withdrawal => {
+    const userName = withdrawal.userName || ''
+    const userEmail = withdrawal.userEmail || ''
+    
+    const matchesSearch = userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         userEmail.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || withdrawal.status === filterStatus
     const matchesType = filterType === 'all' || withdrawal.type === filterType
@@ -75,16 +81,16 @@ export default function WithdrawalManagement() {
 
   // Chart data
   const statusChartData = [
-    { name: 'Pending', value: withdrawals.filter(w => w.status === 'pending').length, color: '#F59E0B' },
-    { name: 'Approved', value: withdrawals.filter(w => w.status === 'approved').length, color: '#3B82F6' },
-    { name: 'Completed', value: withdrawals.filter(w => w.status === 'completed').length, color: '#10B981' },
-    { name: 'Rejected', value: withdrawals.filter(w => w.status === 'rejected').length, color: '#EF4444' },
+    { name: 'Pending', value: safeWithdrawals.filter(w => w.status === 'pending').length, color: '#F59E0B' },
+    { name: 'Approved', value: safeWithdrawals.filter(w => w.status === 'approved').length, color: '#3B82F6' },
+    { name: 'Completed', value: safeWithdrawals.filter(w => w.status === 'completed').length, color: '#10B981' },
+    { name: 'Rejected', value: safeWithdrawals.filter(w => w.status === 'rejected').length, color: '#EF4444' },
   ]
 
   const typeChartData = [
-    { name: 'Referral', value: withdrawals.filter(w => w.type === 'referral').length, color: '#8B5CF6' },
-    { name: 'Investment Return', value: withdrawals.filter(w => w.type === 'investment_return').length, color: '#06B6D4' },
-    { name: 'Other', value: withdrawals.filter(w => w.type === 'other').length, color: '#F97316' },
+    { name: 'Referral', value: safeWithdrawals.filter(w => w.type === 'referral').length, color: '#8B5CF6' },
+    { name: 'Investment Return', value: safeWithdrawals.filter(w => w.type === 'investment_return').length, color: '#06B6D4' },
+    { name: 'Other', value: safeWithdrawals.filter(w => w.type === 'other').length, color: '#F97316' },
   ]
 
   if (loading) {
@@ -136,7 +142,7 @@ export default function WithdrawalManagement() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Requests</p>
-              <p className="text-2xl font-bold text-gray-900">{withdrawals.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{safeWithdrawals.length}</p>
             </div>
           </div>
         </div>
@@ -149,7 +155,7 @@ export default function WithdrawalManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-bold text-gray-900">
-                {withdrawals.filter(w => w.status === 'pending').length}
+                {safeWithdrawals.filter(w => w.status === 'pending').length}
               </p>
             </div>
           </div>
@@ -163,7 +169,7 @@ export default function WithdrawalManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Completed</p>
               <p className="text-2xl font-bold text-gray-900">
-                {withdrawals.filter(w => w.status === 'completed').length}
+                {safeWithdrawals.filter(w => w.status === 'completed').length}
               </p>
             </div>
           </div>
@@ -177,7 +183,7 @@ export default function WithdrawalManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Amount</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(withdrawals.reduce((sum, w) => sum + w.amount, 0))}
+                {formatCurrency(safeWithdrawals.reduce((sum, w) => sum + w.amount, 0))}
               </p>
             </div>
           </div>

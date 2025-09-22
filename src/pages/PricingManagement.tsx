@@ -39,8 +39,12 @@ export default function PricingManagement() {
   const [selectedPlots, setSelectedPlots] = useState<string[]>([])
   const [bulkPriceChange, setBulkPriceChange] = useState<number>(0)
 
+  // Ensure plots is an array
+  const safePlots = Array.isArray(plots) ? plots : []
+  const safePriceUpdates = Array.isArray(priceUpdates) ? priceUpdates : []
+
   // Convert plots to pricing format
-  const plotPricing: PlotPricing[] = plots.map(plot => ({
+  const plotPricing: PlotPricing[] = safePlots.map(plot => ({
     id: plot.id,
     name: plot.name,
     projectName: plot.projectName,
@@ -80,7 +84,8 @@ export default function PricingManagement() {
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'N/A'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -94,7 +99,7 @@ export default function PricingManagement() {
   }
 
   // Chart data
-  const priceHistoryData = priceUpdates.map(update => ({
+  const priceHistoryData = safePriceUpdates.map(update => ({
     date: update.updatedAt ? update.updatedAt.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
     price: update.newPrice || 0,
     plot: update.plotName || 'Unknown'
@@ -210,7 +215,7 @@ export default function PricingManagement() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Price Updates</p>
-              <p className="text-2xl font-bold text-gray-900">{priceUpdates.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{safePriceUpdates.length}</p>
             </div>
           </div>
         </div>
