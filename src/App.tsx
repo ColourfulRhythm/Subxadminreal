@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import AuthGuard from './components/AuthGuard'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
@@ -13,7 +14,7 @@ import PricingManagement from './pages/PricingManagement'
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <AuthGuard>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -36,7 +37,7 @@ function App() {
             },
           }}
         />
-      </div>
+      </AuthGuard>
     </Router>
   )
 }

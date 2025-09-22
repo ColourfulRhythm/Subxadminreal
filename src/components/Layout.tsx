@@ -35,7 +35,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -124,26 +124,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top bar */}
-        <div className="sticky top-0 z-40 bg-white shadow-sm border-b border-gray-200">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-gray-500 hover:text-gray-700 lg:hidden"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
-                Last updated: {new Date().toLocaleTimeString()}
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                <span className="text-sm text-gray-600">System Online</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Top bar - now handled by AuthGuard */}
 
         {/* Page content */}
         <main className="p-4 sm:p-6 lg:p-8">
