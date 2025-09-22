@@ -205,19 +205,29 @@ export default function LoginForm() {
           <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Credentials:</h3>
           <p className="text-sm text-blue-700">
             <strong>Email:</strong> subx@focalpointdev.com<br />
-            <strong>Password:</strong> SubxAdmin2024!
+            <strong>Password:</strong> [Reset needed]
           </p>
           <p className="text-xs text-blue-600 mt-2">
-            Click below to ensure account is set up correctly.
+            Account exists but password is incorrect. Reset it in Firebase Console.
           </p>
-          <button
-            type="button"
-            onClick={createDefaultAdmin}
-            disabled={loading}
-            className="mt-3 w-full btn-secondary text-sm py-2"
-          >
-            {loading ? 'Fixing account...' : 'Fix Admin Account'}
-          </button>
+          <div className="mt-3 space-y-2">
+            <button
+              type="button"
+              onClick={createDefaultAdmin}
+              disabled={loading}
+              className="w-full btn-secondary text-sm py-2"
+            >
+              {loading ? 'Testing...' : 'Test Account Status'}
+            </button>
+            <a
+              href="https://console.firebase.google.com/project/subx-825e9/authentication/users"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-red-100 hover:bg-red-200 text-red-800 text-sm py-2 px-4 rounded-lg transition-colors block text-center"
+            >
+              🔧 Reset Password in Firebase Console
+            </a>
+          </div>
         </div>
       </div>
     </div>
