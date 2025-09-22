@@ -49,11 +49,14 @@ export async function setupDefaultAdmin() {
   try {
     await createAdminUser('subx@focalpointdev.com', 'SubxAdmin2024!')
     console.log('Admin account created successfully!')
+    return { success: true, message: 'Admin account created with password: SubxAdmin2024!' }
   } catch (error: any) {
     if (error.code === 'auth/email-already-in-use') {
-      console.log('Admin account already exists')
+      console.log('Admin account already exists - password might be different')
+      return { success: false, message: 'Account exists but password may be different. Try: SubxAdmin2024!' }
     } else {
       console.error('Error setting up admin account:', error)
+      return { success: false, message: 'Error: ' + error.message }
     }
   }
 }
