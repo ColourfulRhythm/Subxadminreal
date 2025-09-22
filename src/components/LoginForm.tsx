@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { recreateAdminAccount } from '../utils/deleteAndRecreateAdmin'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function LoginForm() {
@@ -12,27 +11,6 @@ export default function LoginForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const createDefaultAdmin = async () => {
-    setLoading(true)
-    setError('')
-    setSuccess('')
-    
-    try {
-      const result = await recreateAdminAccount()
-      setEmail('subx@focalpointdev.com')
-      setPassword('SubxAdmin2024!')
-      
-      if (result.success) {
-        setSuccess(result.message)
-      } else {
-        setError(result.message)
-      }
-    } catch (error: any) {
-      setError('Error: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,29 +183,21 @@ export default function LoginForm() {
           <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Credentials:</h3>
           <p className="text-sm text-blue-700">
             <strong>Email:</strong> subx@focalpointdev.com<br />
-            <strong>Password:</strong> [Reset needed]
+            <strong>Password:</strong> Qwert1234%
           </p>
           <p className="text-xs text-blue-600 mt-2">
-            Account exists but password is incorrect. Reset it in Firebase Console.
+            Ready to login with the correct credentials!
           </p>
-          <div className="mt-3 space-y-2">
-            <button
-              type="button"
-              onClick={createDefaultAdmin}
-              disabled={loading}
-              className="w-full btn-secondary text-sm py-2"
-            >
-              {loading ? 'Testing...' : 'Test Account Status'}
-            </button>
-            <a
-              href="https://console.firebase.google.com/project/subx-825e9/authentication/users"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-red-100 hover:bg-red-200 text-red-800 text-sm py-2 px-4 rounded-lg transition-colors block text-center"
-            >
-              🔧 Reset Password in Firebase Console
-            </a>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail('subx@focalpointdev.com')
+              setPassword('Qwert1234%')
+            }}
+            className="mt-3 w-full btn-secondary text-sm py-2"
+          >
+            Auto-fill Credentials
+          </button>
         </div>
       </div>
     </div>

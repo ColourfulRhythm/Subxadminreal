@@ -6,7 +6,7 @@ import { auth, db } from '../lib/firebase'
 export async function recreateAdminAccount() {
   try {
     // First, try to create the account fresh
-    const userCredential = await createUserWithEmailAndPassword(auth, 'subx@focalpointdev.com', 'SubxAdmin2024!')
+    const userCredential = await createUserWithEmailAndPassword(auth, 'subx@focalpointdev.com', 'Qwert1234%')
     const user = userCredential.user
 
     // Set admin status in Firestore
@@ -20,21 +20,21 @@ export async function recreateAdminAccount() {
     console.log('Fresh admin account created successfully!')
     return { 
       success: true, 
-      message: 'Fresh admin account created! Email: subx@focalpointdev.com, Password: SubxAdmin2024!' 
+      message: 'Fresh admin account created! Email: subx@focalpointdev.com, Password: Qwert1234%' 
     }
   } catch (error: any) {
     if (error.code === 'auth/email-already-in-use') {
       // Account exists, try to sign in to see if password works
       try {
-        await signInWithEmailAndPassword(auth, 'subx@focalpointdev.com', 'SubxAdmin2024!')
+        await signInWithEmailAndPassword(auth, 'subx@focalpointdev.com', 'Qwert1234%')
         return { 
           success: true, 
-          message: 'Account exists and password is correct! You can now login.' 
+          message: 'Account exists and password is correct! You can now login with: subx@focalpointdev.com / Qwert1234%' 
         }
       } catch (signInError: any) {
         return { 
           success: false, 
-          message: 'Account exists but password is wrong. You need to reset it in Firebase Console.' 
+          message: 'Account exists but password is wrong. Try: Qwert1234%' 
         }
       }
     } else {
