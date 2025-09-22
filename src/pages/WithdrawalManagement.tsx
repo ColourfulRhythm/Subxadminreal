@@ -61,7 +61,8 @@ export default function WithdrawalManagement() {
     console.log('Exporting withdrawals to CSV')
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined) => {
+    if (!amount) return '$0.00'
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -69,7 +70,8 @@ export default function WithdrawalManagement() {
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'N/A'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -305,8 +307,8 @@ export default function WithdrawalManagement() {
                   <tr key={withdrawal.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{withdrawal.userName}</div>
-                        <div className="text-sm text-gray-500">{withdrawal.userEmail}</div>
+                        <div className="text-sm font-medium text-gray-900">{withdrawal.userName || 'Unknown User'}</div>
+                        <div className="text-sm text-gray-500">{withdrawal.userEmail || 'No email'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -314,7 +316,7 @@ export default function WithdrawalManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {withdrawal.type.replace('_', ' ')}
+                        {withdrawal.type ? withdrawal.type.replace('_', ' ') : 'Unknown'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -406,7 +408,7 @@ export default function WithdrawalManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Type</label>
-                  <p className="text-sm text-gray-900">{selectedWithdrawal.type.replace('_', ' ')}</p>
+                  <p className="text-sm text-gray-900">{selectedWithdrawal.type ? selectedWithdrawal.type.replace('_', ' ') : 'Unknown'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
