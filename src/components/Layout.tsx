@@ -9,7 +9,6 @@ import {
   DollarSign, 
   Users2, 
   DollarSign as PricingIcon,
-  Menu,
   X,
   LogOut,
   Settings

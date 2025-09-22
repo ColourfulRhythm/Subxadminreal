@@ -33,7 +33,7 @@ export async function signInAdmin(email: string, password: string) {
     const user = userCredential.user
 
     // Check if user is admin
-    const adminDoc = await doc(db, 'adminUsers', user.uid)
+    // const adminDoc = await doc(db, 'adminUsers', user.uid)
     // In a real app, you'd check the document here
     
     console.log('Admin signed in successfully:', user.email)

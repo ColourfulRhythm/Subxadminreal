@@ -15,7 +15,7 @@ import { useDashboardStats } from '../hooks/useFirebase'
 
 export default function Dashboard() {
   const { stats, loading, error } = useDashboardStats()
-  const [localStats, setLocalStats] = useState<DashboardStats>({
+  const [localStats] = useState<DashboardStats>({
     totalUsers: 1247,
     totalProjects: 15,
     totalPlots: 234,
@@ -173,7 +173,7 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Projects</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalProjects}</p>
+              <p className="text-2xl font-bold text-gray-900">{displayStats.totalProjects}</p>
             </div>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Plots</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalPlots}</p>
+              <p className="text-2xl font-bold text-gray-900">{displayStats.totalPlots}</p>
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function Dashboard() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Platform Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.platformRevenue)}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(displayStats.platformRevenue)}</p>
             </div>
           </div>
         </div>
@@ -212,20 +212,20 @@ export default function Dashboard() {
               <span className="text-sm text-gray-600">Firebase Connection</span>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600 capitalize">{stats.systemHealth.firebaseStatus}</span>
+                <span className="text-sm text-green-600 capitalize">{displayStats.systemHealth.firebaseStatus}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Data Integrity</span>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600 capitalize">{stats.systemHealth.dataIntegrity.replace('_', ' ')}</span>
+                <span className="text-sm text-green-600 capitalize">{displayStats.systemHealth.dataIntegrity.replace('_', ' ')}</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Last Sync</span>
               <span className="text-sm text-gray-900">
-                {stats.systemHealth.lastSync.toLocaleTimeString()}
+                {displayStats.systemHealth.lastSync.toLocaleTimeString()}
               </span>
             </div>
           </div>
@@ -236,15 +236,15 @@ export default function Dashboard() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">SQM Sold</span>
-              <span className="text-sm font-medium text-gray-900">{formatNumber(stats.totalSqmSold)}</span>
+              <span className="text-sm font-medium text-gray-900">{formatNumber(displayStats.totalSqmSold)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Pending Verifications</span>
-              <span className="text-sm font-medium text-yellow-600">{stats.pendingVerifications}</span>
+              <span className="text-sm font-medium text-yellow-600">{displayStats.pendingVerifications}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Active Referrals</span>
-              <span className="text-sm font-medium text-blue-600">{stats.activeReferrals}</span>
+              <span className="text-sm font-medium text-blue-600">{displayStats.activeReferrals}</span>
             </div>
           </div>
         </div>

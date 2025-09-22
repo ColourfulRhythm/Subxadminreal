@@ -15,7 +15,7 @@ import { User } from '../types'
 import { useUsers } from '../hooks/useFirebase'
 
 export default function UserManagement() {
-  const { data: firebaseUsers, loading, error } = useUsers()
+  const { data: firebaseUsers, loading } = useUsers()
   const [users] = useState<User[]>([
     {
       id: '1',
