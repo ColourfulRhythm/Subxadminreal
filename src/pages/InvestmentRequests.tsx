@@ -49,7 +49,7 @@ export default function InvestmentRequests() {
   })
 
   const statusDistribution = [
-    { name: 'Pending', value: displayRequests.filter(r => r.status === 'pending').length, color: '#f59e0b' },
+    { name: 'Pending', value: displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length, color: '#f59e0b' },
     { name: 'Approved', value: displayRequests.filter(r => r.status === 'approved').length, color: '#22c55e' },
     { name: 'Rejected', value: displayRequests.filter(r => r.status === 'rejected').length, color: '#ef4444' },
     { name: 'Completed', value: displayRequests.filter(r => r.status === 'completed').length, color: '#3b82f6' },
@@ -273,7 +273,7 @@ export default function InvestmentRequests() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-bold text-gray-900">
-                {displayRequests.filter(r => r.status === 'pending').length}
+                {displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length}
               </p>
             </div>
           </div>
@@ -475,13 +475,13 @@ export default function InvestmentRequests() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{request.project_title || request.plotName || request.plot_name || 'Unknown Project'}</div>
-                      <div className="text-sm text-gray-500">{request.sqm || 0} SQM</div>
+                      <div className="text-sm text-gray-500">{request.sqm_purchased || request.sqm || 0} SQM</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{formatCurrency(request.Amount_paid || request.amount_paid || 0)}</div>
-                      <div className="text-sm text-gray-500">{formatCurrency(request.pricePerSqm || request.price_per_sqm || 0)}/SQM</div>
+                      <div className="text-sm text-gray-500">{formatCurrency(request.current_price_per_sqm || request.pricePerSqm || request.price_per_sqm || 0)}/SQM</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -524,7 +524,7 @@ export default function InvestmentRequests() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {request.status === 'pending' && (
+                      {(request.status === 'pending' || request.status === 'pending_approval') && (
                         <>
                           <button
                             onClick={() => handleRequestAction(request.id, 'approve')}
@@ -585,12 +585,12 @@ export default function InvestmentRequests() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Project</label>
                       <p className="text-sm text-gray-900">{selectedRequest.project_title || selectedRequest.plotName || 'Unknown Project'}</p>
-                      <p className="text-sm text-gray-500">{selectedRequest.sqm || 0} SQM</p>
+                      <p className="text-sm text-gray-500">{selectedRequest.sqm_purchased || selectedRequest.sqm || 0} SQM</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Amount</label>
                       <p className="text-sm text-gray-900">{formatCurrency(selectedRequest.Amount_paid || selectedRequest.amount_paid || 0)}</p>
-                      <p className="text-sm text-gray-500">{formatCurrency(selectedRequest.pricePerSqm || selectedRequest.price_per_sqm || 0)}/SQM</p>
+                      <p className="text-sm text-gray-500">{formatCurrency(selectedRequest.current_price_per_sqm || selectedRequest.pricePerSqm || selectedRequest.price_per_sqm || 0)}/SQM</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -656,7 +656,7 @@ export default function InvestmentRequests() {
                 <div>
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Actions</h4>
                   <div className="space-y-3">
-                    {selectedRequest.status === 'pending' && (
+                    {(selectedRequest.status === 'pending' || selectedRequest.status === 'pending_approval') && (
                       <>
                         <button
                           onClick={() => {

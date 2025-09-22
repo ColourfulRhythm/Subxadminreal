@@ -93,7 +93,7 @@ export interface InvestmentRequest {
   totalAmount: number
   Amount_paid?: number // Added for Firebase compatibility
   amount_paid?: number // Added for Firebase compatibility
-  status: 'pending' | 'approved' | 'rejected' | 'completed'
+  status: 'pending' | 'pending_approval' | 'approved' | 'rejected' | 'completed'
   createdAt: Date
   processedAt?: Date
   referralCode?: string
@@ -107,6 +107,7 @@ export interface InvestmentRequest {
   plot_name?: string
   project_title?: string
   price_per_sqm?: number
+  current_price_per_sqm?: number // Added for current plot pricing
   payment_status?: string
   payment_method?: string
   referral_code?: string
