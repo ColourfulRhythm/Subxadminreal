@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import { setupDefaultAdmin } from '../utils/adminSetup'
+import { recreateAdminAccount } from '../utils/deleteAndRecreateAdmin'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function LoginForm() {
@@ -18,17 +18,17 @@ export default function LoginForm() {
     setSuccess('')
     
     try {
-      const result = await setupDefaultAdmin()
+      const result = await recreateAdminAccount()
       setEmail('subx@focalpointdev.com')
       setPassword('SubxAdmin2024!')
       
       if (result.success) {
-        setSuccess('Admin account created! Password: SubxAdmin2024!')
+        setSuccess(result.message)
       } else {
         setError(result.message)
       }
     } catch (error: any) {
-      setError('Error creating admin account: ' + error.message)
+      setError('Error: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -216,7 +216,7 @@ export default function LoginForm() {
             disabled={loading}
             className="mt-3 w-full btn-secondary text-sm py-2"
           >
-            {loading ? 'Setting up...' : 'Setup Admin Account'}
+            {loading ? 'Fixing account...' : 'Fix Admin Account'}
           </button>
         </div>
       </div>
