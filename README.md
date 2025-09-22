@@ -186,3 +186,4 @@ For support and questions, please contact the development team.
 ---
 
 **Note**: This dashboard requires proper Firebase configuration and admin access to the Subx platform. Ensure all Firebase collections are properly set up before use.
+# Last updated: Mon Sep 22 13:33:00 BST 2025
