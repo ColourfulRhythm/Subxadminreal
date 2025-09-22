@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { 
   TrendingUp, 
   Search, 
-  Filter, 
   RefreshCw,
   CheckCircle,
   XCircle,
@@ -12,8 +11,6 @@ import {
   AlertTriangle,
   DollarSign,
   Users,
-  Calendar,
-  CreditCard,
   Wifi,
   WifiOff
 } from 'lucide-react'
@@ -157,7 +154,7 @@ export default function InvestmentRequests() {
   }
 
   const testFirebaseConnection = async () => {
-    setFirebaseStatus('connecting')
+    setFirebaseStatus('connected')
     // Simulate connection test
     await new Promise(resolve => setTimeout(resolve, 1000))
     setFirebaseStatus('connected')

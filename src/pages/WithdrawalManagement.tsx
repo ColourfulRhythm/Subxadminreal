@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { 
   DollarSign, 
   Search, 
-  Filter, 
   RefreshCw,
   CheckCircle,
   XCircle,
@@ -11,8 +10,6 @@ import {
   CreditCard,
   Building2,
   Users,
-  Calendar,
-  AlertTriangle,
   Download
 } from 'lucide-react'
 import { WithdrawalRequest } from '../types'

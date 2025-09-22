@@ -1,25 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { 
   Search, 
-  Filter, 
   Download, 
   Eye, 
   Edit, 
   Ban, 
   CheckCircle, 
   XCircle,
-  Mail,
-  Phone,
-  Calendar,
   TrendingUp,
   DollarSign,
-  Users,
-  MoreVertical
+  Users
 } from 'lucide-react'
 import { User } from '../types'
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<User[]>([
+  const [users] = useState<User[]>([
     {
       id: '1',
       email: 'john.doe@email.com',
@@ -257,7 +252,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-400 mr-2" />
+                      <Users className="h-4 w-4 text-gray-400 mr-2" />
                       {user.portfolio.length} plots
                     </div>
                   </td>

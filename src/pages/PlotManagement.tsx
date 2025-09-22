@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { 
   MapPin, 
   Search, 
-  Filter, 
   RefreshCw,
   Eye,
   Edit,
@@ -15,11 +14,11 @@ import {
   CheckCircle,
   AlertTriangle
 } from 'lucide-react'
-import { Plot, PlotPurchase } from '../types'
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
+import { Plot } from '../types'
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 export default function PlotManagement() {
-  const [plots, setPlots] = useState<Plot[]>([
+  const [plots] = useState<Plot[]>([
     {
       id: '1',
       projectId: 'proj1',
@@ -406,7 +405,7 @@ export default function PlotManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPlots.map((plot) => {
                 const statusInfo = getStatusInfo(plot.status)
-                const StatusIcon = statusInfo.icon
+                // const StatusIcon = statusInfo.icon
                 
                 return (
                   <tr key={plot.id} className="hover:bg-gray-50">
@@ -424,7 +423,6 @@ export default function PlotManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
                         {statusInfo.label}
                       </span>
                     </td>
@@ -507,7 +505,6 @@ export default function PlotManagement() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Status</label>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusInfo(selectedPlot.status).color}`}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
                         {getStatusInfo(selectedPlot.status).label}
                       </span>
                     </div>

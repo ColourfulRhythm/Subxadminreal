@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { 
   Users, 
   Building2, 
   MapPin, 
   DollarSign, 
   TrendingUp, 
-  Clock, 
-  AlertTriangle,
   CheckCircle,
   Activity,
   RefreshCw
@@ -30,7 +28,7 @@ export default function Dashboard() {
     }
   })
 
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([
+  const [recentActivity] = useState<RecentActivity[]>([
     {
       id: '1',
       type: 'user_registration',

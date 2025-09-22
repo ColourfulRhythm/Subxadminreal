@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { 
   DollarSign, 
   Search, 
-  Filter, 
   RefreshCw,
   Edit,
   Save,
@@ -10,9 +9,6 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
   MapPin,
   Building2
 } from 'lucide-react'
@@ -77,28 +73,7 @@ export default function PricingManagement() {
     }
   ])
 
-  const [priceHistory] = useState<PriceUpdate[]>([
-    {
-      id: '1',
-      plotId: '1',
-      plotName: 'Plot A-12',
-      oldPrice: 230,
-      newPrice: 250,
-      updatedBy: 'admin1',
-      updatedAt: new Date('2024-01-15'),
-      reason: 'Market demand increase'
-    },
-    {
-      id: '2',
-      plotId: '3',
-      plotName: 'Plot C-08',
-      oldPrice: 380,
-      newPrice: 400,
-      updatedBy: 'admin1',
-      updatedAt: new Date('2024-01-18'),
-      reason: 'Location premium adjustment'
-    }
-  ])
+  // const [priceHistory] = useState<PriceUpdate[]>([])
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterProject, setFilterProject] = useState<string>('all')

@@ -2,22 +2,16 @@ import { useState } from 'react'
 import { 
   Users2, 
   Search, 
-  Filter, 
-  RefreshCw,
   TrendingUp,
   DollarSign,
-  Users,
-  Calendar,
   Eye,
   Award,
   Target,
-  BarChart3,
   Download,
-  Plus,
-  Edit
+  Plus
 } from 'lucide-react'
 import { ReferralData } from '../types'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
 export default function ReferralAnalytics() {
   const [referrals, setReferrals] = useState<ReferralData[]>([
@@ -101,12 +95,7 @@ export default function ReferralAnalytics() {
     { month: 'Jan 2024', referrals: 22, commission: 45000 },
   ]
 
-  const conversionTrends = [
-    { month: 'Oct 2023', rate: 72 },
-    { month: 'Nov 2023', rate: 78 },
-    { month: 'Dec 2023', rate: 82 },
-    { month: 'Jan 2024', rate: 85 },
-  ]
+  // const conversionTrends = []
 
   const handleReferralAction = async (referralId: string, action: string) => {
     console.log(`Performing ${action} on referral ${referralId}`)
@@ -486,7 +475,7 @@ export default function ReferralAnalytics() {
                 onClick={() => setShowReferrerModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <XCircle className="h-6 w-6" />
+                <span className="text-xl">×</span>
               </button>
             </div>
             

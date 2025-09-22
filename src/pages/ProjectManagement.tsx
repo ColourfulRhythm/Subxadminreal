@@ -3,23 +3,19 @@ import {
   Building2, 
   MapPin, 
   DollarSign, 
-  Calendar,
   TrendingUp,
-  Users,
   CheckCircle,
   XCircle,
   Clock,
   Search,
-  Filter,
   Plus,
   Eye,
-  Edit,
-  MoreVertical
+  Edit
 } from 'lucide-react'
 import { Project } from '../types'
 
 export default function ProjectManagement() {
-  const [projects, setProjects] = useState<Project[]>([
+  const [projects] = useState<Project[]>([
     {
       id: '1',
       name: 'Green Valley Estate',
