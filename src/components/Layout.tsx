@@ -11,7 +11,8 @@ import {
   DollarSign as PricingIcon,
   X,
   LogOut,
-  Settings
+  Settings,
+  Database
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Withdrawal Management', href: '/withdrawals', icon: DollarSign },
   { name: 'Referral Analytics', href: '/referrals', icon: Users2 },
   { name: 'Pricing Management', href: '/pricing', icon: PricingIcon },
+  { name: 'Firebase Test', href: '/firebase-test', icon: Database },
 ]
 
 export default function Layout({ children }: LayoutProps) {

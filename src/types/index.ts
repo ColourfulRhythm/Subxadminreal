@@ -1,16 +1,27 @@
 export interface User {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  full_name: string
+  firstName?: string
+  lastName?: string
   phone?: string
-  isActive: boolean
-  createdAt: Date
+  isActive?: boolean
+  created_at: Date
   lastLogin?: Date
-  totalInvestments: number
-  portfolio: PortfolioItem[]
-  referralCode: string
-  referredBy?: string
+  totalInvestments?: number
+  portfolio?: PortfolioItem[]
+  referral_code: string
+  referred_by?: string
+  wallet_balance?: number
+  address?: string
+  occupation?: string
+  bank_name?: string
+  avatar_url?: string
+  user_id?: string
+  migrated_at?: Date
+  updated_at?: Date
+  date_of_birth?: string
+  source_table?: string
 }
 
 export interface PortfolioItem {
@@ -49,6 +60,7 @@ export interface Plot {
   availableSqm: number
   pricePerSqm: number
   totalOwners: number
+  Total_owners?: number // Added for Firebase compatibility
   totalRevenue: number
   averageRevenue: number
   status: 'available' | 'popular' | 'low_stock' | 'sold_out'
@@ -78,6 +90,8 @@ export interface InvestmentRequest {
   sqm: number
   pricePerSqm: number
   totalAmount: number
+  Amount_paid?: number // Added for Firebase compatibility
+  amount_paid?: number // Added for Firebase compatibility
   status: 'pending' | 'approved' | 'rejected' | 'completed'
   createdAt: Date
   processedAt?: Date

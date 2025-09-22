@@ -17,80 +17,11 @@ import {
 import { InvestmentRequest } from '../types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 
 export default function InvestmentRequests() {
   const { data: firebaseRequests, loading, error } = useInvestmentRequests()
-  const [requests, setRequests] = useState<InvestmentRequest[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      userEmail: 'john.doe@email.com',
-      userName: 'John Doe',
-      plotId: 'plot1',
-      plotName: 'Plot A-12',
-      sqm: 100,
-      pricePerSqm: 250,
-      totalAmount: 25000,
-      status: 'pending',
-      createdAt: new Date('2024-01-20T10:30:00'),
-      referralCode: 'REF123',
-      referralCommission: 2500,
-      paymentMethod: 'Bank Transfer',
-      paymentStatus: 'pending'
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      userEmail: 'jane.smith@email.com',
-      userName: 'Jane Smith',
-      plotId: 'plot2',
-      plotName: 'Plot B-15',
-      sqm: 150,
-      pricePerSqm: 250,
-      totalAmount: 37500,
-      status: 'approved',
-      createdAt: new Date('2024-01-19T14:20:00'),
-      processedAt: new Date('2024-01-19T16:45:00'),
-      referralCode: 'REF456',
-      referralCommission: 3750,
-      paymentMethod: 'Credit Card',
-      paymentStatus: 'verified'
-    },
-    {
-      id: '3',
-      userId: 'user3',
-      userEmail: 'mike.johnson@email.com',
-      userName: 'Mike Johnson',
-      plotId: 'plot3',
-      plotName: 'Plot C-08',
-      sqm: 80,
-      pricePerSqm: 400,
-      totalAmount: 32000,
-      status: 'rejected',
-      createdAt: new Date('2024-01-18T09:15:00'),
-      processedAt: new Date('2024-01-18T11:30:00'),
-      paymentMethod: 'Bank Transfer',
-      paymentStatus: 'failed'
-    },
-    {
-      id: '4',
-      userId: 'user4',
-      userEmail: 'sarah.wilson@email.com',
-      userName: 'Sarah Wilson',
-      plotId: 'plot4',
-      plotName: 'Plot D-03',
-      sqm: 120,
-      pricePerSqm: 400,
-      totalAmount: 48000,
-      status: 'completed',
-      createdAt: new Date('2024-01-17T13:45:00'),
-      processedAt: new Date('2024-01-17T15:20:00'),
-      referralCode: 'REF789',
-      referralCommission: 4800,
-      paymentMethod: 'Credit Card',
-      paymentStatus: 'verified'
-    }
-  ])
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'completed'>('all')
@@ -99,13 +30,17 @@ export default function InvestmentRequests() {
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'disconnected' | 'error'>('connected')
 
-  // Use real Firebase data if available, otherwise fallback to mock data
-  const displayRequests = firebaseRequests.length > 0 ? firebaseRequests : requests
+  // Always use real Firebase data
+  const displayRequests = firebaseRequests
   
   const filteredRequests = displayRequests.filter(request => {
-    const matchesSearch = request.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.plotName.toLowerCase().includes(searchTerm.toLowerCase())
+    const userName = request.userName || request.user_name || ''
+    const userEmail = request.userEmail || request.user_email || ''
+    const plotName = request.plotName || request.plot_name || request.project_title || ''
+    
+    const matchesSearch = userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         plotName.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || request.status === filterStatus
     const matchesPayment = filterPayment === 'all' || request.paymentStatus === filterPayment
@@ -114,16 +49,16 @@ export default function InvestmentRequests() {
   })
 
   const statusDistribution = [
-    { name: 'Pending', value: requests.filter(r => r.status === 'pending').length, color: '#f59e0b' },
-    { name: 'Approved', value: requests.filter(r => r.status === 'approved').length, color: '#22c55e' },
-    { name: 'Rejected', value: requests.filter(r => r.status === 'rejected').length, color: '#ef4444' },
-    { name: 'Completed', value: requests.filter(r => r.status === 'completed').length, color: '#3b82f6' },
+    { name: 'Pending', value: displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length, color: '#f59e0b' },
+    { name: 'Approved', value: displayRequests.filter(r => r.status === 'approved').length, color: '#22c55e' },
+    { name: 'Rejected', value: displayRequests.filter(r => r.status === 'rejected').length, color: '#ef4444' },
+    { name: 'Completed', value: displayRequests.filter(r => r.status === 'completed').length, color: '#3b82f6' },
   ]
 
   const paymentStatusDistribution = [
-    { name: 'Pending', value: requests.filter(r => r.paymentStatus === 'pending').length, color: '#f59e0b' },
-    { name: 'Verified', value: requests.filter(r => r.paymentStatus === 'verified').length, color: '#22c55e' },
-    { name: 'Failed', value: requests.filter(r => r.paymentStatus === 'failed').length, color: '#ef4444' },
+    { name: 'Pending', value: displayRequests.filter(r => r.paymentStatus === 'pending').length, color: '#f59e0b' },
+    { name: 'Verified', value: displayRequests.filter(r => r.paymentStatus === 'verified').length, color: '#22c55e' },
+    { name: 'Failed', value: displayRequests.filter(r => r.paymentStatus === 'failed').length, color: '#ef4444' },
   ]
 
   const dailyRequests = [
@@ -134,28 +69,51 @@ export default function InvestmentRequests() {
   ]
 
   const handleRequestAction = async (requestId: string, action: string) => {
-    console.log(`Performing ${action} on request ${requestId}`)
-    
-    // Simulate API call
-    setRequests(prev => prev.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : req.status,
-            processedAt: new Date()
-          }
-        : req
-    ))
+    try {
+      console.log(`Performing ${action} on request ${requestId}`)
+      
+      // Update status in Firebase
+      const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending'
+      const docRef = doc(db, 'investment_requests', requestId)
+      await updateDoc(docRef, {
+        status: newStatus,
+        processedAt: new Date(),
+        processedBy: 'admin' // You can replace this with actual admin user ID
+      })
+      
+      console.log(`Successfully ${action}d request ${requestId}`)
+      
+      // Update local state for immediate UI feedback
+      setRequests(prev => prev.map(req => 
+        req.id === requestId 
+          ? { 
+              ...req, 
+              status: newStatus,
+              processedAt: new Date()
+            }
+          : req
+      ))
+    } catch (error) {
+      console.error(`Error ${action}ing request ${requestId}:`, error)
+      alert(`Failed to ${action} request. Please try again.`)
+    }
   }
 
   const handleMoveToInvestments = async (requestId: string) => {
-    console.log(`Moving request ${requestId} to investments collection`)
-    // This would move the approved request to the investments collection
-    setRequests(prev => prev.map(req => 
-      req.id === requestId 
-        ? { ...req, status: 'completed' }
-        : req
-    ))
+    try {
+      console.log(`Moving request ${requestId} to investments collection`)
+      // Update status to completed in Firebase
+      const docRef = doc(db, 'investment_requests', requestId)
+      await updateDoc(docRef, {
+        status: 'completed',
+        processedAt: new Date(),
+        processedBy: 'admin'
+      })
+      console.log(`Successfully moved request ${requestId} to investments (status updated to completed)`)
+    } catch (error) {
+      console.error(`Error moving request ${requestId} to investments:`, error)
+      alert(`Failed to move request to investments. Please try again.`)
+    }
   }
 
   const testFirebaseConnection = async () => {
@@ -169,26 +127,57 @@ export default function InvestmentRequests() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       minimumFractionDigits: 0,
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A'
+    
+    // Handle Firebase timestamp objects
+    if (date.toDate && typeof date.toDate === 'function') {
+      return date.toDate().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+    
+    // Handle Date objects
+    if (date instanceof Date) {
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+    
+    // Handle string dates
+    const dateObj = new Date(date)
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+    
+    return 'Invalid Date'
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
+      case 'pending_approval':
         return 'bg-yellow-100 text-yellow-800'
       case 'approved':
         return 'bg-green-100 text-green-800'
@@ -217,6 +206,7 @@ export default function InvestmentRequests() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
+      case 'pending_approval':
         return <Clock className="h-4 w-4" />
       case 'approved':
         return <CheckCircle className="h-4 w-4" />
@@ -292,7 +282,7 @@ export default function InvestmentRequests() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending</p>
               <p className="text-2xl font-bold text-gray-900">
-                {requests.filter(r => r.status === 'pending').length}
+                {displayRequests.filter(r => r.status === 'pending' || r.status === 'pending_approval').length}
               </p>
             </div>
           </div>
@@ -306,7 +296,7 @@ export default function InvestmentRequests() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Amount</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(requests.reduce((sum, r) => sum + r.totalAmount, 0))}
+                {formatCurrency(displayRequests.reduce((sum, r) => sum + (r.Amount_paid || r.amount_paid || 0), 0))}
               </p>
             </div>
           </div>
@@ -320,7 +310,7 @@ export default function InvestmentRequests() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Referral Commission</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(requests.reduce((sum, r) => sum + (r.referralCommission || 0), 0))}
+                {formatCurrency(displayRequests.reduce((sum, r) => sum + (r.referralCommission || 0), 0))}
               </p>
             </div>
           </div>
@@ -487,20 +477,20 @@ export default function InvestmentRequests() {
                 <tr key={request.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{request.userName}</div>
-                      <div className="text-sm text-gray-500">{request.userEmail}</div>
+                      <div className="text-sm font-medium text-gray-900">{request.userName || request.user_name || 'Unknown User'}</div>
+                      <div className="text-sm text-gray-500">{request.userEmail || request.user_email || 'No email'}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{request.plotName}</div>
-                      <div className="text-sm text-gray-500">{request.sqm} SQM</div>
+                      <div className="text-sm font-medium text-gray-900">{request.project_title || request.plotName || request.plot_name || 'Unknown Project'}</div>
+                      <div className="text-sm text-gray-500">{request.sqm || 0} SQM</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{formatCurrency(request.totalAmount)}</div>
-                      <div className="text-sm text-gray-500">{formatCurrency(request.pricePerSqm)}/SQM</div>
+                      <div className="text-sm font-medium text-gray-900">{formatCurrency(request.Amount_paid || request.amount_paid || 0)}</div>
+                      <div className="text-sm text-gray-500">{formatCurrency(request.pricePerSqm || request.price_per_sqm || 0)}/SQM</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -511,18 +501,18 @@ export default function InvestmentRequests() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(request.paymentStatus)}`}>
-                        {request.paymentStatus}
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(request.paymentStatus || request.payment_status || 'unknown')}`}>
+                        {request.paymentStatus || request.payment_status || 'Unknown'}
                       </span>
-                      <div className="text-xs text-gray-500 mt-1">{request.paymentMethod}</div>
+                      <div className="text-xs text-gray-500 mt-1">{request.paymentMethod || request.payment_method || 'Unknown'}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      {request.referralCode ? (
+                      {request.referralCode || request.referral_code ? (
                         <>
-                          <div className="text-sm font-medium text-gray-900">{request.referralCode}</div>
-                          <div className="text-sm text-gray-500">{formatCurrency(request.referralCommission || 0)}</div>
+                          <div className="text-sm font-medium text-gray-900">{request.referralCode || request.referral_code}</div>
+                          <div className="text-sm text-gray-500">{formatCurrency(request.referralCommission || request.referral_commission || 0)}</div>
                         </>
                       ) : (
                         <span className="text-sm text-gray-500">No referral</span>
@@ -530,7 +520,7 @@ export default function InvestmentRequests() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(request.createdAt)}
+                    {formatDate(request.createdAt || request.created_at || new Date())}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
@@ -543,7 +533,7 @@ export default function InvestmentRequests() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {request.status === 'pending' && (
+                      {(request.status === 'pending' || request.status === 'pending_approval') && (
                         <>
                           <button
                             onClick={() => handleRequestAction(request.id, 'approve')}
@@ -598,18 +588,18 @@ export default function InvestmentRequests() {
                   <div className="space-y-3">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">User</label>
-                      <p className="text-sm text-gray-900">{selectedRequest.userName}</p>
-                      <p className="text-sm text-gray-500">{selectedRequest.userEmail}</p>
+                      <p className="text-sm text-gray-900">{selectedRequest.userName || selectedRequest.user_name || 'Unknown User'}</p>
+                      <p className="text-sm text-gray-500">{selectedRequest.userEmail || selectedRequest.user_email || 'No email'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Plot</label>
-                      <p className="text-sm text-gray-900">{selectedRequest.plotName}</p>
-                      <p className="text-sm text-gray-500">{selectedRequest.sqm} SQM</p>
+                      <label className="block text-sm font-medium text-gray-700">Project</label>
+                      <p className="text-sm text-gray-900">{selectedRequest.project_title || selectedRequest.plotName || 'Unknown Project'}</p>
+                      <p className="text-sm text-gray-500">{selectedRequest.sqm || 0} SQM</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Amount</label>
-                      <p className="text-sm text-gray-900">{formatCurrency(selectedRequest.totalAmount)}</p>
-                      <p className="text-sm text-gray-500">{formatCurrency(selectedRequest.pricePerSqm)}/SQM</p>
+                      <p className="text-sm text-gray-900">{formatCurrency(selectedRequest.Amount_paid || selectedRequest.amount_paid || 0)}</p>
+                      <p className="text-sm text-gray-500">{formatCurrency(selectedRequest.pricePerSqm || selectedRequest.price_per_sqm || 0)}/SQM</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -675,7 +665,7 @@ export default function InvestmentRequests() {
                 <div>
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Actions</h4>
                   <div className="space-y-3">
-                    {selectedRequest.status === 'pending' && (
+                    {(selectedRequest.status === 'pending' || selectedRequest.status === 'pending_approval') && (
                       <>
                         <button
                           onClick={() => {

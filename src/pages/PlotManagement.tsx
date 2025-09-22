@@ -9,135 +9,17 @@ import {
   TrendingUp,
   Users,
   DollarSign,
-  BarChart3,
   XCircle,
   CheckCircle,
   AlertTriangle
 } from 'lucide-react'
 import { Plot } from '../types'
+import { usePlots } from '../hooks/useFirebase'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 export default function PlotManagement() {
-  const [plots] = useState<Plot[]>([
-    {
-      id: '1',
-      projectId: 'proj1',
-      projectName: 'Green Valley Estate',
-      name: 'Plot A-12',
-      totalSqm: 1000,
-      availableSqm: 300,
-      pricePerSqm: 250,
-      totalOwners: 7,
-      totalRevenue: 175000,
-      averageRevenue: 25000,
-      status: 'popular',
-      ownershipPercentage: 70,
-      purchases: [
-        {
-          id: '1',
-          userId: 'user1',
-          userName: 'John Doe',
-          sqm: 100,
-          price: 25000,
-          purchaseDate: new Date('2024-01-15'),
-          status: 'completed'
-        },
-        {
-          id: '2',
-          userId: 'user2',
-          userName: 'Jane Smith',
-          sqm: 150,
-          price: 37500,
-          purchaseDate: new Date('2024-01-20'),
-          status: 'completed'
-        }
-      ],
-      createdAt: new Date('2023-06-01'),
-      updatedAt: new Date('2024-01-20')
-    },
-    {
-      id: '2',
-      projectId: 'proj1',
-      projectName: 'Green Valley Estate',
-      name: 'Plot B-15',
-      totalSqm: 800,
-      availableSqm: 720,
-      pricePerSqm: 250,
-      totalOwners: 1,
-      totalRevenue: 20000,
-      averageRevenue: 20000,
-      status: 'available',
-      ownershipPercentage: 10,
-      purchases: [
-        {
-          id: '3',
-          userId: 'user3',
-          userName: 'Mike Johnson',
-          sqm: 80,
-          price: 20000,
-          purchaseDate: new Date('2024-01-18'),
-          status: 'completed'
-        }
-      ],
-      createdAt: new Date('2023-06-01'),
-      updatedAt: new Date('2024-01-18')
-    },
-    {
-      id: '3',
-      projectId: 'proj2',
-      projectName: 'Ocean View Heights',
-      name: 'Plot C-08',
-      totalSqm: 1200,
-      availableSqm: 120,
-      pricePerSqm: 400,
-      totalOwners: 9,
-      totalRevenue: 432000,
-      averageRevenue: 48000,
-      status: 'low_stock',
-      ownershipPercentage: 90,
-      purchases: [
-        {
-          id: '4',
-          userId: 'user4',
-          userName: 'Sarah Wilson',
-          sqm: 120,
-          price: 48000,
-          purchaseDate: new Date('2024-01-19'),
-          status: 'completed'
-        }
-      ],
-      createdAt: new Date('2022-01-01'),
-      updatedAt: new Date('2024-01-19')
-    },
-    {
-      id: '4',
-      projectId: 'proj2',
-      projectName: 'Ocean View Heights',
-      name: 'Plot D-03',
-      totalSqm: 900,
-      availableSqm: 0,
-      pricePerSqm: 400,
-      totalOwners: 15,
-      totalRevenue: 360000,
-      averageRevenue: 24000,
-      status: 'sold_out',
-      ownershipPercentage: 100,
-      purchases: [
-        {
-          id: '5',
-          userId: 'user5',
-          userName: 'David Brown',
-          sqm: 60,
-          price: 24000,
-          purchaseDate: new Date('2024-01-20'),
-          status: 'completed'
-        }
-      ],
-      createdAt: new Date('2022-01-01'),
-      updatedAt: new Date('2024-01-20')
-    }
-  ])
-
+  const { data: plots, loading, error } = usePlots()
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'popular' | 'low_stock' | 'sold_out'>('all')
   const [filterProject, setFilterProject] = useState<string>('all')
@@ -155,35 +37,40 @@ export default function PlotManagement() {
     return matchesSearch && matchesStatus && matchesProject
   })
 
-  const projects = Array.from(new Set(plots.map(plot => ({ id: plot.projectId, name: plot.projectName }))))
-
-  const statusDistribution = [
-    { name: 'Available', value: plots.filter(p => p.status === 'available').length, color: '#22c55e' },
-    { name: 'Popular', value: plots.filter(p => p.status === 'popular').length, color: '#3b82f6' },
-    { name: 'Low Stock', value: plots.filter(p => p.status === 'low_stock').length, color: '#f59e0b' },
-    { name: 'Sold Out', value: plots.filter(p => p.status === 'sold_out').length, color: '#ef4444' },
-  ]
-
-  const revenueData = plots.map(plot => ({
-    name: plot.name,
-    revenue: plot.totalRevenue,
-    owners: plot.totalOwners
-  })).sort((a, b) => b.revenue - a.revenue).slice(0, 10)
-
-  const handleRecalculate = async (plotId: string) => {
-    setIsRecalculating(true)
-    // Simulate recalculation
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsRecalculating(false)
-    console.log(`Recalculating plot ${plotId}`)
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'available':
+        return { color: 'bg-green-100 text-green-800', label: 'Available' }
+      case 'popular':
+        return { color: 'bg-blue-100 text-blue-800', label: 'Popular' }
+      case 'low_stock':
+        return { color: 'bg-yellow-100 text-yellow-800', label: 'Low Stock' }
+      case 'sold_out':
+        return { color: 'bg-red-100 text-red-800', label: 'Sold Out' }
+      default:
+        return { color: 'bg-gray-100 text-gray-800', label: 'Unknown' }
+    }
   }
 
-  const handleBulkRecalculate = async () => {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'available':
+        return <CheckCircle className="h-4 w-4" />
+      case 'popular':
+        return <TrendingUp className="h-4 w-4" />
+      case 'low_stock':
+        return <AlertTriangle className="h-4 w-4" />
+      case 'sold_out':
+        return <XCircle className="h-4 w-4" />
+      default:
+        return <CheckCircle className="h-4 w-4" />
+    }
+  }
+
+  const handleRecalculateMetrics = async () => {
     setIsRecalculating(true)
-    // Simulate bulk recalculation
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsRecalculating(false)
-    console.log('Bulk recalculation completed')
+    // Implement recalculation logic
+    setTimeout(() => setIsRecalculating(false), 2000)
   }
 
   const formatCurrency = (amount: number) => {
@@ -194,27 +81,41 @@ export default function PlotManagement() {
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+
+  // Chart data
+  const statusChartData = [
+    { name: 'Available', value: plots.filter(p => p.status === 'available').length, color: '#10B981' },
+    { name: 'Popular', value: plots.filter(p => p.status === 'popular').length, color: '#3B82F6' },
+    { name: 'Low Stock', value: plots.filter(p => p.status === 'low_stock').length, color: '#F59E0B' },
+    { name: 'Sold Out', value: plots.filter(p => p.status === 'sold_out').length, color: '#EF4444' },
+  ]
+
+  const revenueChartData = plots.map(plot => ({
+    name: plot.name,
+    revenue: plot.totalRevenue
+  }))
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Loading plots...</span>
+      </div>
+    )
   }
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
-      case 'available':
-        return { color: 'text-green-600 bg-green-100', icon: CheckCircle, label: 'Available' }
-      case 'popular':
-        return { color: 'text-blue-600 bg-blue-100', icon: TrendingUp, label: 'Popular' }
-      case 'low_stock':
-        return { color: 'text-yellow-600 bg-yellow-100', icon: AlertTriangle, label: 'Low Stock' }
-      case 'sold_out':
-        return { color: 'text-red-600 bg-red-100', icon: XCircle, label: 'Sold Out' }
-      default:
-        return { color: 'text-gray-600 bg-gray-100', icon: CheckCircle, label: 'Unknown' }
-    }
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex">
+          <XCircle className="h-5 w-5 text-red-400" />
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading plots</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -223,18 +124,16 @@ export default function PlotManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Plot Management</h1>
-          <p className="text-gray-600">Real-time plot analytics and inventory management</p>
+          <p className="text-gray-600">Monitor plot availability, pricing, and ownership</p>
         </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleBulkRecalculate}
-            disabled={isRecalculating}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
-            <span>Recalculate All</span>
-          </button>
-        </div>
+        <button
+          onClick={handleRecalculateMetrics}
+          disabled={isRecalculating}
+          className="btn-secondary flex items-center space-x-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+          <span>{isRecalculating ? 'Recalculating...' : 'Recalculate Metrics'}</span>
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -273,7 +172,7 @@ export default function PlotManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Owners</p>
               <p className="text-2xl font-bold text-gray-900">
-                {plots.reduce((sum, p) => sum + p.totalOwners, 0)}
+                {plots.reduce((sum, p) => sum + (p.totalOwners || 0), 0)}
               </p>
             </div>
           </div>
@@ -287,21 +186,21 @@ export default function PlotManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(plots.reduce((sum, p) => sum + p.totalRevenue, 0))}
+                {formatCurrency(plots.reduce((sum, p) => sum + (p.totalRevenue || 0), 0))}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Analytics Charts */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Plot Status Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={statusDistribution}
+                data={statusChartData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -309,7 +208,7 @@ export default function PlotManagement() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {statusDistribution.map((entry, index) => (
+                {statusChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -319,25 +218,25 @@ export default function PlotManagement() {
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Revenue Plots</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Plot</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={revenueData}>
+            <BarChart data={revenueChartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip formatter={(value) => [formatCurrency(value as number), 'Revenue']} />
-              <Bar dataKey="revenue" fill="#3b82f6" />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+              <Bar dataKey="revenue" fill="#3B82F6" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters */}
       <div className="card">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
                 placeholder="Search plots by name or project..."
@@ -347,17 +246,7 @@ export default function PlotManagement() {
               />
             </div>
           </div>
-          <div className="flex gap-2">
-            <select
-              className="input-field"
-              value={filterProject}
-              onChange={(e) => setFilterProject(e.target.value)}
-            >
-              <option value="all">All Projects</option>
-              {projects.map(project => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
+          <div className="flex space-x-2">
             <select
               className="input-field"
               value={filterStatus}
@@ -368,6 +257,18 @@ export default function PlotManagement() {
               <option value="popular">Popular</option>
               <option value="low_stock">Low Stock</option>
               <option value="sold_out">Sold Out</option>
+            </select>
+            <select
+              className="input-field"
+              value={filterProject}
+              onChange={(e) => setFilterProject(e.target.value)}
+            >
+              <option value="all">All Projects</option>
+              {[...new Set(plots.map(p => p.projectId).filter(Boolean))].map(projectId => (
+                <option key={projectId} value={projectId}>
+                  {plots.find(p => p.projectId === projectId)?.projectName || projectId}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -383,221 +284,139 @@ export default function PlotManagement() {
                   Plot
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Project
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ownership
+                  SQM
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Revenue
+                  Price/SQM
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Owners
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Revenue
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPlots.map((plot) => {
-                const statusInfo = getStatusInfo(plot.status)
-                // const StatusIcon = statusInfo.icon
-                
-                return (
-                  <tr key={plot.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{plot.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {plot.availableSqm.toLocaleString()} / {plot.totalSqm.toLocaleString()} SQM
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{plot.projectName}</div>
-                      <div className="text-sm text-gray-500">{formatCurrency(plot.pricePerSqm)}/SQM</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                        {statusInfo.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
-                          <div 
-                            className={`h-2 rounded-full ${
-                              plot.ownershipPercentage >= 80 ? 'bg-red-500' :
-                              plot.ownershipPercentage >= 50 ? 'bg-yellow-500' :
-                              'bg-green-500'
-                            }`}
-                            style={{ width: `${plot.ownershipPercentage}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-gray-900">{plot.ownershipPercentage}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{formatCurrency(plot.totalRevenue)}</div>
-                        <div className="text-sm text-gray-500">Avg: {formatCurrency(plot.averageRevenue)}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {plot.totalOwners}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedPlot(plot)
-                            setShowPlotModal(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRecalculate(plot.id)}
-                          disabled={isRecalculating}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          <Calculator className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {filteredPlots.map((plot) => (
+                <tr key={plot.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{plot.name}</div>
+                      <div className="text-sm text-gray-500">{plot.projectName}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusInfo(plot.status).color}`}>
+                      {getStatusIcon(plot.status)}
+                      <span className="ml-1">{getStatusInfo(plot.status).label}</span>
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {((plot as any).available_sqm || plot.availableSqm || 0).toLocaleString()} / {((plot as any).total_sqm || plot.totalSqm || 0).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(plot.pricePerSqm)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {plot.totalOwners || 0}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {formatCurrency(plot.totalRevenue || 0)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPlot(plot)
+                          setShowPlotModal(true)
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        className="text-gray-600 hover:text-gray-900"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        <Calculator className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
+
+        {filteredPlots.length === 0 && (
+          <div className="text-center py-8">
+            <MapPin className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No plots found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchTerm ? 'Try adjusting your search criteria.' : 'No plots available in the system.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Plot Detail Modal */}
       {showPlotModal && selectedPlot && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">{selectedPlot.name}</h3>
-              <button
-                onClick={() => setShowPlotModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Plot Details */}
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-3">Plot Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Project</label>
-                      <p className="text-sm text-gray-900">{selectedPlot.projectName}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Status</label>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusInfo(selectedPlot.status).color}`}>
-                        {getStatusInfo(selectedPlot.status).label}
-                      </span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Total SQM</label>
-                      <p className="text-sm text-gray-900">{selectedPlot.totalSqm.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Available SQM</label>
-                      <p className="text-sm text-gray-900">{selectedPlot.availableSqm.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Price per SQM</label>
-                      <p className="text-sm text-gray-900">{formatCurrency(selectedPlot.pricePerSqm)}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Ownership %</label>
-                      <p className="text-sm text-gray-900">{selectedPlot.ownershipPercentage}%</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-3">Performance Metrics</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Total Revenue</label>
-                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(selectedPlot.totalRevenue)}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Average Revenue</label>
-                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(selectedPlot.averageRevenue)}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Total Owners</label>
-                      <p className="text-lg font-semibold text-gray-900">{selectedPlot.totalOwners}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                      <p className="text-sm text-gray-900">{formatDate(selectedPlot.updatedAt)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Purchase History */}
-              <div>
-                <h4 className="text-lg font-medium text-gray-900 mb-3">Purchase History</h4>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {selectedPlot.purchases.map((purchase) => (
-                    <div key={purchase.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-gray-900">{purchase.userName}</p>
-                          <p className="text-sm text-gray-600">{purchase.sqm} SQM</p>
-                          <p className="text-xs text-gray-500">{formatDate(purchase.purchaseDate)}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">{formatCurrency(purchase.price)}</p>
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            purchase.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            purchase.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {purchase.status}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex space-x-3">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Plot Details</h3>
                 <button
-                  onClick={() => handleRecalculate(selectedPlot.id)}
-                  disabled={isRecalculating}
-                  className="btn-secondary flex items-center space-x-2"
+                  onClick={() => setShowPlotModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  <Calculator className="h-4 w-4" />
-                  <span>Recalculate</span>
+                  <XCircle className="h-6 w-6" />
                 </button>
-                <button className="btn-primary flex items-center space-x-2">
-                  <Edit className="h-4 w-4" />
-                  <span>Edit Plot</span>
-                </button>
-                <button className="btn-success flex items-center space-x-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>View Analytics</span>
-                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Plot Name</label>
+                  <p className="text-sm text-gray-900">{selectedPlot.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Project</label>
+                  <p className="text-sm text-gray-900">{selectedPlot.projectName}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusInfo(selectedPlot.status).color}`}>
+                    {getStatusIcon(selectedPlot.status)}
+                    <span className="ml-1">{getStatusInfo(selectedPlot.status).label}</span>
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Available SQM</label>
+                  <p className="text-sm text-gray-900">{((selectedPlot as any).available_sqm || selectedPlot.availableSqm || 0).toLocaleString()} / {((selectedPlot as any).total_sqm || selectedPlot.totalSqm || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Price per SQM</label>
+                  <p className="text-sm text-gray-900">{formatCurrency(selectedPlot.pricePerSqm)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Total Owners</label>
+                  <p className="text-sm text-gray-900">{selectedPlot.totalOwners}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Total Revenue</label>
+                  <p className="text-sm text-gray-900">{formatCurrency(selectedPlot.totalRevenue)}</p>
+                </div>
               </div>
             </div>
           </div>

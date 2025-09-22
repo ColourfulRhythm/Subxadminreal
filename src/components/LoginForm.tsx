@@ -179,26 +179,6 @@ export default function LoginForm() {
           {/* Remove sign up option - only admin can access */}
         </form>
 
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Credentials:</h3>
-          <p className="text-sm text-blue-700">
-            <strong>Email:</strong> subx@focalpointdev.com<br />
-            <strong>Password:</strong> Qwert1234%
-          </p>
-          <p className="text-xs text-blue-600 mt-2">
-            Ready to login with the correct credentials!
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('subx@focalpointdev.com')
-              setPassword('Qwert1234%')
-            }}
-            className="mt-3 w-full btn-secondary text-sm py-2"
-          >
-            Auto-fill Credentials
-          </button>
-        </div>
       </div>
     </div>
   )

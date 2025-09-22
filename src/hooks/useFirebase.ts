@@ -118,7 +118,7 @@ export function usePlots() {
 }
 
 export function useInvestmentRequests() {
-  return useFirebase<InvestmentRequest>('investmentRequests')
+  return useFirebase<InvestmentRequest>('investment_requests')
 }
 
 export function useInvestments() {
@@ -126,7 +126,7 @@ export function useInvestments() {
 }
 
 export function useWithdrawalRequests() {
-  return useFirebase<WithdrawalRequest>('withdrawalRequests')
+  return useFirebase<WithdrawalRequest>('withdrawal_requests')
 }
 
 export function useReferrals() {
@@ -138,7 +138,7 @@ export function useNotifications() {
 }
 
 export function usePriceUpdates() {
-  return useFirebase<any>('priceUpdates')
+  return useFirebase<any>('plot_prices')
 }
 
 // Dashboard stats hook
@@ -154,36 +154,43 @@ export function useDashboardStats() {
         setError(null)
 
         // Fetch data from multiple collections with correct names
-        const [usersSnapshot, projectsSnapshot, plotsSnapshot, requestsSnapshot, referralsSnapshot] = await Promise.all([
+        const [usersSnapshot, projectsSnapshot, plotsSnapshot, _, referralsSnapshot, investmentsSnapshot] = await Promise.all([
           getDocs(collection(db, 'user_profiles')),
           getDocs(collection(db, 'projects')),
           getDocs(collection(db, 'plots')),
-          getDocs(collection(db, 'investmentRequests')),
-          getDocs(collection(db, 'referrals'))
+          getDocs(collection(db, 'investment_requests')),
+          getDocs(collection(db, 'referrals')),
+          getDocs(collection(db, 'investments'))
         ])
 
         const totalUsers = usersSnapshot.size
         const totalProjects = projectsSnapshot.size
         const totalPlots = plotsSnapshot.size
+        
+        // Calculate total SQM sold using actual field names from your Firebase
         const totalSqmSold = plotsSnapshot.docs.reduce((sum, doc) => {
-          const plot = doc.data() as Plot
-          return sum + (plot.totalSqm - plot.availableSqm)
-        }, 0)
-        const platformRevenue = plotsSnapshot.docs.reduce((sum, doc) => {
-          const plot = doc.data() as Plot
-          return sum + plot.totalRevenue
+          const plot = doc.data()
+          // Use sold_sqm field from your Firebase data
+          return sum + (plot.sold_sqm || 0)
         }, 0)
         
-        // Pending verifications from investment_requests (as specified)
-        const pendingVerifications = requestsSnapshot.docs.filter(doc => {
-          const request = doc.data() as InvestmentRequest
-          return request.status === 'pending'
+        // Calculate platform revenue from investments using actual field names
+        const platformRevenue = investmentsSnapshot.docs.reduce((sum, doc) => {
+          const investment = doc.data()
+          // Use amount_paid field from your investments collection
+          return sum + (investment.amount_paid || 0)
+        }, 0)
+        
+        // Pending verifications from investments collection (since investmentRequests is empty)
+        const pendingVerifications = investmentsSnapshot.docs.filter(doc => {
+          const investment = doc.data()
+          return investment.status === 'pending'
         }).length
 
         // Active referrals count from referrals collection
         const activeReferrals = referralsSnapshot.docs.filter(doc => {
-          const referral = doc.data() as ReferralData
-          return referral.status === 'pending' || referral.status === 'paid'
+          const referral = doc.data()
+          return referral.status === 'pending' || referral.status === 'verified'
         }).length
 
         setStats({

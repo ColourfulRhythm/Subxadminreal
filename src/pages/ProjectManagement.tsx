@@ -13,58 +13,12 @@ import {
   Edit
 } from 'lucide-react'
 import { Project } from '../types'
+import { useProjects, usePlots, useInvestments } from '../hooks/useFirebase'
 
 export default function ProjectManagement() {
-  const [projects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Green Valley Estate',
-      description: 'Premium residential development with modern amenities',
-      location: 'Lagos, Nigeria',
-      totalPlots: 150,
-      totalSqm: 45000,
-      pricePerSqm: 250,
-      status: 'active',
-      startDate: new Date('2023-06-01'),
-      expectedCompletion: new Date('2025-12-31'),
-      developerId: 'dev1',
-      developerName: 'Prime Developers Ltd',
-      revenue: 875000,
-      isApproved: true
-    },
-    {
-      id: '2',
-      name: 'Sunset Gardens',
-      description: 'Luxury villa community with golf course',
-      location: 'Abuja, Nigeria',
-      totalPlots: 75,
-      totalSqm: 22500,
-      pricePerSqm: 350,
-      status: 'planning',
-      startDate: new Date('2024-03-01'),
-      expectedCompletion: new Date('2026-06-30'),
-      developerId: 'dev2',
-      developerName: 'Elite Properties',
-      revenue: 0,
-      isApproved: false
-    },
-    {
-      id: '3',
-      name: 'Ocean View Heights',
-      description: 'Beachfront residential development',
-      location: 'Calabar, Nigeria',
-      totalPlots: 200,
-      totalSqm: 60000,
-      pricePerSqm: 400,
-      status: 'completed',
-      startDate: new Date('2022-01-01'),
-      expectedCompletion: new Date('2024-01-01'),
-      developerId: 'dev3',
-      developerName: 'Coastal Developments',
-      revenue: 2400000,
-      isApproved: true
-    }
-  ])
+  const { data: projects, loading, error } = useProjects()
+  const { data: plots } = usePlots()
+  const { data: investments } = useInvestments()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'planning' | 'active' | 'completed' | 'paused'>('all')
@@ -72,10 +26,24 @@ export default function ProjectManagement() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [showProjectModal, setShowProjectModal] = useState(false)
 
+  // Helper function to get total owners for a project from plots
+  const getProjectTotalOwners = (projectId: string) => {
+    return plots
+      .filter(plot => plot.projectId === projectId)
+      .reduce((sum, plot) => sum + ((plot as any).Total_owners || plot.totalOwners || 0), 0)
+  }
+
+  // Helper function to get total revenue for a project from investments
+  const getProjectTotalRevenue = (projectId: string) => {
+    return investments
+      .filter(investment => investment.plotId === projectId)
+      .reduce((sum, investment) => sum + ((investment as any).amount_paid || (investment as any).Amount_paid || 0), 0)
+  }
+
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.developerName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (project.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (project.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (project.developerName || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || project.status === filterStatus
     const matchesApproval = filterApproval === 'all' || 
@@ -90,19 +58,45 @@ export default function ProjectManagement() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       minimumFractionDigits: 0,
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A'
+
+    // Handle Firebase timestamp objects
+    if (date.toDate && typeof date.toDate === 'function') {
+      return date.toDate().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+
+    // Handle Date objects
+    if (date instanceof Date) {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+
+    // Handle string dates
+    const dateObj = new Date(date)
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+
+    return 'Invalid Date'
   }
 
   const getStatusColor = (status: string) => {
@@ -133,6 +127,29 @@ export default function ProjectManagement() {
       default:
         return <Clock className="h-4 w-4" />
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2">Loading projects...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex">
+          <XCircle className="h-5 w-5 text-red-400" />
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Error loading projects</h3>
+            <p className="text-sm text-red-700 mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -183,9 +200,9 @@ export default function ProjectManagement() {
               <MapPin className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Plots</p>
+              <p className="text-sm font-medium text-gray-600">Total Owners</p>
               <p className="text-2xl font-bold text-gray-900">
-                {projects.reduce((sum, p) => sum + p.totalPlots, 0)}
+                {projects.reduce((sum, p) => sum + getProjectTotalOwners(p.id), 0)}
               </p>
             </div>
           </div>
@@ -199,7 +216,7 @@ export default function ProjectManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(projects.reduce((sum, p) => sum + p.revenue, 0))}
+                {formatCurrency(projects.reduce((sum, p) => sum + getProjectTotalRevenue(p.id), 0))}
               </p>
             </div>
           </div>
@@ -274,8 +291,8 @@ export default function ProjectManagement() {
                 <span className="font-medium text-gray-900">{project.developerName}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total Plots:</span>
-                <span className="font-medium text-gray-900">{project.totalPlots}</span>
+                <span className="text-gray-600">Total Owners:</span>
+                <span className="font-medium text-gray-900">{getProjectTotalOwners(project.id)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Price/SQM:</span>
@@ -283,7 +300,7 @@ export default function ProjectManagement() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Revenue:</span>
-                <span className="font-medium text-gray-900">{formatCurrency(project.revenue)}</span>
+                <span className="font-medium text-gray-900">{formatCurrency(getProjectTotalRevenue(project.id))}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Start Date:</span>
@@ -382,8 +399,8 @@ export default function ProjectManagement() {
                   <h4 className="text-lg font-medium text-gray-900 mb-3">Project Metrics</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Total Plots</label>
-                      <p className="text-lg font-semibold text-gray-900">{selectedProject.totalPlots}</p>
+                      <label className="block text-sm font-medium text-gray-700">Total Owners</label>
+                      <p className="text-lg font-semibold text-gray-900">{getProjectTotalOwners(selectedProject.id)}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Total SQM</label>
@@ -395,7 +412,7 @@ export default function ProjectManagement() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Total Revenue</label>
-                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(selectedProject.revenue)}</p>
+                      <p className="text-lg font-semibold text-gray-900">{formatCurrency(getProjectTotalRevenue(selectedProject.id))}</p>
                     </div>
                   </div>
                 </div>

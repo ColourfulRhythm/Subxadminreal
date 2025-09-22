@@ -10,72 +10,39 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
-import { DashboardStats, RecentActivity } from '../types'
+import { RecentActivity } from '../types'
 import { useDashboardStats } from '../hooks/useFirebase'
 
 export default function Dashboard() {
   const { stats, loading, error } = useDashboardStats()
-  const [localStats] = useState<DashboardStats>({
-    totalUsers: 1247,
-    totalProjects: 15,
-    totalPlots: 234,
-    totalSqmSold: 45670,
-    platformRevenue: 2850000,
-    pendingVerifications: 23,
-    activeReferrals: 89,
+
+  // Use real Firebase data if available, otherwise fallback to zero values
+  const displayStats = stats || {
+    totalUsers: 0,
+    totalProjects: 0,
+    totalPlots: 0,
+    totalSqmSold: 0,
+    platformRevenue: 0,
+    pendingVerifications: 0,
+    activeReferrals: 0,
     systemHealth: {
-      firebaseStatus: 'connected',
-      dataIntegrity: 'healthy',
+      firebaseStatus: 'disconnected',
+      dataIntegrity: 'unknown',
       lastSync: new Date()
     }
-  })
+  }
 
-  const [recentActivity] = useState<RecentActivity[]>([
-    {
-      id: '1',
-      type: 'user_registration',
-      description: 'New user registered: john.doe@email.com',
-      timestamp: new Date(Date.now() - 5 * 60 * 1000),
-      userId: 'user123'
-    },
-    {
-      id: '2',
-      type: 'investment',
-      description: 'Investment completed: $25,000 in Plot A-12',
-      timestamp: new Date(Date.now() - 15 * 60 * 1000),
-      userId: 'user456',
-      amount: 25000
-    },
-    {
-      id: '3',
-      type: 'withdrawal',
-      description: 'Withdrawal request: $5,000 referral commission',
-      timestamp: new Date(Date.now() - 30 * 60 * 1000),
-      userId: 'user789',
-      amount: 5000
-    },
-    {
-      id: '4',
-      type: 'system_notification',
-      description: 'System maintenance completed successfully',
-      timestamp: new Date(Date.now() - 45 * 60 * 1000)
-    }
-  ])
+  // Use empty array for recent activity - will be populated from real data later
+  const recentActivity: RecentActivity[] = []
 
-  // Mock data for charts
+  // Real data for charts - using actual Firebase data
   const revenueData = [
-    { month: 'Jan', revenue: 240000, users: 850 },
-    { month: 'Feb', revenue: 280000, users: 920 },
-    { month: 'Mar', revenue: 320000, users: 1050 },
-    { month: 'Apr', revenue: 380000, users: 1180 },
-    { month: 'May', revenue: 420000, users: 1247 },
+    { month: 'Current', revenue: displayStats.platformRevenue, users: displayStats.totalUsers }
   ]
 
   const plotStatusData = [
-    { name: 'Available', value: 45, color: '#22c55e' },
-    { name: 'Popular', value: 30, color: '#3b82f6' },
-    { name: 'Low Stock', value: 15, color: '#f59e0b' },
-    { name: 'Sold Out', value: 10, color: '#ef4444' },
+    { name: 'Total Plots', value: displayStats.totalPlots, color: '#3b82f6' },
+    { name: 'SQM Sold', value: displayStats.totalSqmSold, color: '#10b981' },
   ]
 
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -87,13 +54,10 @@ export default function Dashboard() {
     setIsRefreshing(false)
   }
 
-  // Use real Firebase data if available, otherwise fallback to local stats
-  const displayStats = stats || localStats
-
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       minimumFractionDigits: 0,
     }).format(amount)
   }
