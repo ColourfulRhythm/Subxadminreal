@@ -4,7 +4,6 @@ export interface User {
   firstName: string
   lastName: string
   phone?: string
-  isVerified: boolean
   isActive: boolean
   createdAt: Date
   lastLogin?: Date

@@ -108,9 +108,9 @@ export function useFirebase<T>(
   }
 }
 
-// Specific hooks for each data type
+// Specific hooks for each data type with correct collection names
 export function useUsers() {
-  return useFirebase<User>('users')
+  return useFirebase<User>('user_profiles')
 }
 
 export function useProjects() {
@@ -125,12 +125,24 @@ export function useInvestmentRequests() {
   return useFirebase<InvestmentRequest>('investmentRequests')
 }
 
+export function useInvestments() {
+  return useFirebase<InvestmentRequest>('investments')
+}
+
 export function useWithdrawalRequests() {
   return useFirebase<WithdrawalRequest>('withdrawalRequests')
 }
 
 export function useReferrals() {
   return useFirebase<ReferralData>('referrals')
+}
+
+export function useNotifications() {
+  return useFirebase<any>('notifications')
+}
+
+export function usePriceUpdates() {
+  return useFirebase<any>('priceUpdates')
 }
 
 // Dashboard stats hook
@@ -145,12 +157,13 @@ export function useDashboardStats() {
         setLoading(true)
         setError(null)
 
-        // Fetch data from multiple collections
-        const [usersSnapshot, projectsSnapshot, plotsSnapshot, requestsSnapshot] = await Promise.all([
-          getDocs(collection(db, 'users')),
+        // Fetch data from multiple collections with correct names
+        const [usersSnapshot, projectsSnapshot, plotsSnapshot, requestsSnapshot, referralsSnapshot] = await Promise.all([
+          getDocs(collection(db, 'user_profiles')),
           getDocs(collection(db, 'projects')),
           getDocs(collection(db, 'plots')),
-          getDocs(collection(db, 'investmentRequests'))
+          getDocs(collection(db, 'investmentRequests')),
+          getDocs(collection(db, 'referrals'))
         ])
 
         const totalUsers = usersSnapshot.size
@@ -164,14 +177,17 @@ export function useDashboardStats() {
           const plot = doc.data() as Plot
           return sum + plot.totalRevenue
         }, 0)
-        const pendingVerifications = usersSnapshot.docs.filter(doc => {
-          const user = doc.data() as User
-          return !user.isVerified
+        
+        // Pending verifications from investment_requests (as specified)
+        const pendingVerifications = requestsSnapshot.docs.filter(doc => {
+          const request = doc.data() as InvestmentRequest
+          return request.status === 'pending'
         }).length
 
-        const activeReferrals = requestsSnapshot.docs.filter(doc => {
-          const request = doc.data() as InvestmentRequest
-          return request.referralCode
+        // Active referrals count from referrals collection
+        const activeReferrals = referralsSnapshot.docs.filter(doc => {
+          const referral = doc.data() as ReferralData
+          return referral.status === 'pending' || referral.status === 'paid'
         }).length
 
         setStats({
@@ -266,7 +282,7 @@ export const firebaseUtils = {
 
   // User operations
   async updateUserStatus(userId: string, updates: Partial<User>) {
-    const docRef = doc(db, 'users', userId)
+    const docRef = doc(db, 'user_profiles', userId)
     await updateDoc(docRef, updates)
   },
 
@@ -346,7 +362,7 @@ export const firebaseUtils = {
   // Test connection
   async testConnection() {
     try {
-      await getDocs(collection(db, 'users'))
+      await getDocs(collection(db, 'user_profiles'))
       return { connected: true, message: 'Connection successful' }
     } catch (error) {
       return { 

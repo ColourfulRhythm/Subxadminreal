@@ -3,14 +3,14 @@ import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getStorage } from 'firebase/storage'
 
-// Firebase configuration - you'll need to add your actual config
+// Firebase configuration for subx-825e9 project
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
+  apiKey: "AIzaSyBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // You'll need to get this from your Firebase console
+  authDomain: "subx-825e9.firebaseapp.com",
+  projectId: "subx-825e9",
+  storageBucket: "subx-825e9.appspot.com",
+  messagingSenderId: "XXXXXXXXXX", // You'll need to get this from your Firebase console
+  appId: "X:XXXXXXXXXX:web:XXXXXXXXXX" // You'll need to get this from your Firebase console
 }
 
 // Initialize Firebase

@@ -26,7 +26,6 @@ export default function UserManagement() {
       firstName: 'John',
       lastName: 'Doe',
       phone: '+1234567890',
-      isVerified: true,
       isActive: true,
       createdAt: new Date('2024-01-15'),
       lastLogin: new Date('2024-01-20'),
@@ -51,7 +50,6 @@ export default function UserManagement() {
       firstName: 'Jane',
       lastName: 'Smith',
       phone: '+1234567891',
-      isVerified: false,
       isActive: true,
       createdAt: new Date('2024-01-18'),
       lastLogin: new Date('2024-01-19'),
@@ -62,7 +60,7 @@ export default function UserManagement() {
   ])
 
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'verified' | 'unverified' | 'active' | 'inactive'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
 
@@ -72,8 +70,6 @@ export default function UserManagement() {
                          user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesFilter = filterStatus === 'all' || 
-                         (filterStatus === 'verified' && user.isVerified) ||
-                         (filterStatus === 'unverified' && !user.isVerified) ||
                          (filterStatus === 'active' && user.isActive) ||
                          (filterStatus === 'inactive' && !user.isActive)
     
@@ -140,9 +136,9 @@ export default function UserManagement() {
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Verified Users</p>
+              <p className="text-sm font-medium text-gray-600">Active Users</p>
               <p className="text-2xl font-bold text-gray-900">
-                {users.filter(u => u.isVerified).length}
+                {users.filter(u => u.isActive).length}
               </p>
             </div>
           </div>
@@ -199,8 +195,6 @@ export default function UserManagement() {
               onChange={(e) => setFilterStatus(e.target.value as any)}
             >
               <option value="all">All Users</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Unverified</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
@@ -255,18 +249,11 @@ export default function UserManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col space-y-1">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.isVerified ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.isVerified ? 'Verified' : 'Unverified'}
-                      </span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div className="flex items-center">
@@ -377,12 +364,6 @@ export default function UserManagement() {
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-3">Account Actions</h4>
                 <div className="flex space-x-3">
-                  <button
-                    onClick={() => handleUserAction(selectedUser.id, selectedUser.isVerified ? 'unverify' : 'verify')}
-                    className={selectedUser.isVerified ? 'btn-warning' : 'btn-success'}
-                  >
-                    {selectedUser.isVerified ? 'Unverify' : 'Verify'} Account
-                  </button>
                   <button
                     onClick={() => handleUserAction(selectedUser.id, selectedUser.isActive ? 'deactivate' : 'activate')}
                     className={selectedUser.isActive ? 'btn-danger' : 'btn-success'}
