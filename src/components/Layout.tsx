@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { User, onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from '../lib/firebase'
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,7 +14,8 @@ import {
   X,
   LogOut,
   Settings,
-  Database
+  Database,
+  Menu
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -33,10 +36,42 @@ const navigation = [
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
   const location = useLocation()
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+      setSidebarOpen(false)
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile header with hamburger menu */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white shadow-sm border-b border-gray-200">
+        <div className="flex h-16 items-center justify-between px-4">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-900">Subx Admin</h1>
+          <div className="w-6"></div> {/* Spacer for centering */}
+        </div>
+      </div>
+
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -72,11 +107,28 @@ export default function Layout({ children }: LayoutProps) {
             })}
           </nav>
           <div className="border-t border-gray-200 p-4">
+            {/* User info */}
+            {user && (
+              <div className="flex items-center mb-4 px-3 py-2">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-sm font-medium text-blue-600">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                  <p className="text-xs text-gray-500">Admin</p>
+                </div>
+              </div>
+            )}
             <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
               <Settings className="mr-3 h-5 w-5" />
               Settings
             </button>
-            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2">
+            <button 
+              onClick={handleLogout}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
+            >
               <LogOut className="mr-3 h-5 w-5" />
               Logout
             </button>
@@ -125,10 +177,8 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <div className="lg:pl-64">
-        {/* Top bar - now handled by AuthGuard */}
-
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="pt-16 lg:pt-0 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

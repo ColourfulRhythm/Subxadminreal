@@ -52,8 +52,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top bar with user info and logout */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      {/* Desktop top bar with user info and logout */}
+      <div className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
             <h1 className="text-xl font-bold text-gray-900">Subx Admin Dashboard</h1>
@@ -81,7 +81,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       </div>
       
       {/* Main content */}
-      <div className="pt-0">
+      <div className="lg:pt-0">
         {children}
       </div>
     </div>
