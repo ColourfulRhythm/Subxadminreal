@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
 import { setupDefaultAdmin } from '../utils/adminSetup'
+import { resetAdminPassword } from '../utils/passwordReset'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function LoginForm() {
@@ -21,9 +22,28 @@ export default function LoginForm() {
       await setupDefaultAdmin()
       setEmail('subx@focalpointdev.com')
       setPassword('SubxAdmin2024!')
-      setSuccess('Admin account created! You can now sign in.')
+      setSuccess('Admin account ready! You can now sign in.')
     } catch (error: any) {
       setError('Error creating admin account: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    
+    try {
+      const result = await resetAdminPassword()
+      if (result.success) {
+        setSuccess('Password reset email sent! Check your inbox at subx@focalpointdev.com')
+      } else {
+        setError(result.message)
+      }
+    } catch (error: any) {
+      setError('Error sending password reset: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -51,7 +71,10 @@ export default function LoginForm() {
           setError('No account found with this email address.')
           break
         case 'auth/wrong-password':
-          setError('Incorrect password.')
+          setError('Incorrect password. Try using the password reset option below.')
+          break
+        case 'auth/invalid-credential':
+          setError('Invalid credentials. The password may be incorrect or the account may not exist.')
           break
         case 'auth/email-already-in-use':
           setError('An account with this email already exists.')
@@ -193,22 +216,32 @@ export default function LoginForm() {
         </form>
 
         <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Access Only:</h3>
+          <h3 className="text-sm font-medium text-blue-900 mb-2">Admin Access:</h3>
           <p className="text-sm text-blue-700">
             <strong>Email:</strong> subx@focalpointdev.com<br />
-            <strong>Password:</strong> SubxAdmin2024!
+            <strong>Password:</strong> [Check your email or use reset]
           </p>
           <p className="text-xs text-blue-600 mt-2">
             Only authorized administrators can access this system.
           </p>
-          <button
-            type="button"
-            onClick={createDefaultAdmin}
-            disabled={loading}
-            className="mt-3 w-full btn-secondary text-sm py-2"
-          >
-            {loading ? 'Creating...' : 'Create Admin Account'}
-          </button>
+          <div className="mt-3 space-y-2">
+            <button
+              type="button"
+              onClick={createDefaultAdmin}
+              disabled={loading}
+              className="w-full btn-secondary text-sm py-2"
+            >
+              {loading ? 'Checking...' : 'Setup Admin Account'}
+            </button>
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              disabled={loading}
+              className="w-full bg-orange-100 hover:bg-orange-200 text-orange-800 text-sm py-2 px-4 rounded-lg transition-colors"
+            >
+              {loading ? 'Sending...' : 'Send Password Reset Email'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
