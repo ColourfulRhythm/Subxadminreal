@@ -27,16 +27,26 @@ export default function UserManagement() {
   const safeInvestments = Array.isArray(investments) ? investments : []
   
   // Helper function to get user's total investment amount from investments collection
-  const getUserTotalInvestment = (userId: string) => {
+  const getUserTotalInvestment = (userId: string, userEmail: string) => {
     return safeInvestments
-      .filter(inv => inv.userId === userId || inv.user_id === userId)
+      .filter(inv => 
+        inv.userId === userId || 
+        inv.user_id === userId || 
+        inv.userEmail === userEmail || 
+        (inv as any).user_email === userEmail
+      )
       .reduce((total, inv) => total + ((inv as any).amount_paid || (inv as any).Amount_paid || 0), 0)
   }
   
   // Helper function to get user's portfolio sqm from investments collection
-  const getUserPortfolioSqm = (userId: string) => {
+  const getUserPortfolioSqm = (userId: string, userEmail: string) => {
     return safeInvestments
-      .filter(inv => inv.userId === userId || inv.user_id === userId)
+      .filter(inv => 
+        inv.userId === userId || 
+        inv.user_id === userId || 
+        inv.userEmail === userEmail || 
+        (inv as any).user_email === userEmail
+      )
       .reduce((total, inv) => total + ((inv as any).sqm_purchased || inv.sqm || 0), 0)
   }
   
@@ -185,7 +195,7 @@ export default function UserManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Investment</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(safeUsers.reduce((sum, user) => sum + getUserTotalInvestment(user.id), 0))}
+                {formatCurrency(safeUsers.reduce((sum, user) => sum + getUserTotalInvestment(user.id, user.email || ''), 0))}
               </p>
             </div>
           </div>
@@ -199,7 +209,7 @@ export default function UserManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">With Portfolio</p>
               <p className="text-2xl font-bold text-gray-900">
-                {safeUsers.filter(user => getUserPortfolioSqm(user.id) > 0).length}
+                {safeUsers.filter(user => getUserPortfolioSqm(user.id, user.email || '') > 0).length}
               </p>
             </div>
           </div>
@@ -294,10 +304,10 @@ export default function UserManagement() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(getUserTotalInvestment(user.id))}
+                    {formatCurrency(getUserTotalInvestment(user.id, user.email || ''))}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getUserPortfolioSqm(user.id).toLocaleString()} SQM
+                    {getUserPortfolioSqm(user.id, user.email || '').toLocaleString()} SQM
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(user.created_at)}
@@ -377,11 +387,11 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Investment</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(getUserTotalInvestment(selectedUser.id))}</p>
+                  <p className="text-sm text-gray-900">{formatCurrency(getUserTotalInvestment(selectedUser.id, selectedUser.email || ''))}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Portfolio</label>
-                  <p className="text-sm text-gray-900">{getUserPortfolioSqm(selectedUser.id).toLocaleString()} SQM</p>
+                  <p className="text-sm text-gray-900">{getUserPortfolioSqm(selectedUser.id, selectedUser.email || '').toLocaleString()} SQM</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referral Code</label>

@@ -112,6 +112,7 @@ export interface InvestmentRequest {
   referral_code?: string
   referral_commission?: number
   created_at?: Date
+  sqm_purchased?: number // Added for portfolio calculations
 }
 
 export interface WithdrawalRequest {
