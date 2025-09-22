@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import AuthGuard from './components/AuthGuard'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
-import UserManagement from './pages/UserManagement'
+import TestUsers from './pages/TestUsers'
 import ProjectManagement from './pages/ProjectManagement'
 import PlotManagement from './pages/PlotManagement'
 import InvestmentRequests from './pages/InvestmentRequests'
@@ -18,7 +18,7 @@ function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/users" element={<UserManagement />} />
+            <Route path="/users" element={<TestUsers />} />
             <Route path="/projects" element={<ProjectManagement />} />
             <Route path="/plots" element={<PlotManagement />} />
             <Route path="/investments" element={<InvestmentRequests />} />
