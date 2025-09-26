@@ -222,38 +222,9 @@ export function useDashboardStats() {
 
 // Utility functions for specific operations
 export const firebaseUtils = {
-  // Investment request operations
-  async approveInvestmentRequest(requestId: string) {
-    const docRef = doc(db, 'investmentRequests', requestId)
-    await updateDoc(docRef, {
-      status: 'approved',
-      processedAt: new Date()
-    })
-  },
+  // REMOVED: Old investment request operations - now using comprehensive InvestmentApprovalService
 
-  async rejectInvestmentRequest(requestId: string) {
-    const docRef = doc(db, 'investmentRequests', requestId)
-    await updateDoc(docRef, {
-      status: 'rejected',
-      processedAt: new Date()
-    })
-  },
-
-  async moveToInvestments(requestId: string) {
-    const docRef = doc(db, 'investmentRequests', requestId)
-    const requestDoc = await getDoc(docRef)
-    
-    if (requestDoc.exists()) {
-      const requestData = requestDoc.data()
-      // Move to investments collection
-      await addDoc(collection(db, 'investments'), requestData)
-      // Update status
-      await updateDoc(docRef, {
-        status: 'completed',
-        processedAt: new Date()
-      })
-    }
-  },
+  // REMOVED: Old moveToInvestments function - now using comprehensive InvestmentApprovalService
 
   // Withdrawal operations
   async approveWithdrawal(withdrawalId: string) {

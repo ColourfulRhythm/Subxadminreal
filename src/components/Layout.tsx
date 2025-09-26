@@ -11,6 +11,7 @@ import {
   DollarSign, 
   Users2, 
   DollarSign as PricingIcon,
+  Layout as PageBuilderIcon,
   X,
   LogOut,
   Settings,
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Withdrawal Management', href: '/withdrawals', icon: DollarSign },
   { name: 'Referral Analytics', href: '/referrals', icon: Users2 },
   { name: 'Pricing Management', href: '/pricing', icon: PricingIcon },
+  { name: 'Landing Page Builder', href: '/landing-pages', icon: PageBuilderIcon },
   { name: 'Firebase Test', href: '/firebase-test', icon: Database },
 ]
 
@@ -167,7 +169,10 @@ export default function Layout({ children }: LayoutProps) {
               <Settings className="mr-3 h-5 w-5" />
               Settings
             </button>
-            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2">
+            <button 
+              onClick={handleLogout}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
+            >
               <LogOut className="mr-3 h-5 w-5" />
               Logout
             </button>

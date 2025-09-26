@@ -54,8 +54,8 @@ export default function UserManagement() {
     // Use actual field names from your Firebase: full_name, email
     const fullName = user.full_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
     const userEmail = user.email || ''
-    const matchesSearch = userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         fullName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (fullName || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     // Use status field from user_profiles
     const isActive = user.status === 'active'
@@ -195,7 +195,7 @@ export default function UserManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Investment</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(safeUsers.reduce((sum, user) => sum + getUserTotalInvestment(user.id, user.email || ''), 0))}
+                {formatCurrency(safeInvestments.reduce((sum, inv) => sum + ((inv as any).amount_paid || (inv as any).Amount_paid || 0), 0))}
               </p>
             </div>
           </div>

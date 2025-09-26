@@ -43,21 +43,35 @@ export default function PricingManagement() {
   const safePlots = Array.isArray(plots) ? plots : []
   const safePriceUpdates = Array.isArray(priceUpdates) ? priceUpdates : []
 
-  // Convert plots to pricing format
+  // Convert plots to pricing format using correct Firebase field names
   const plotPricing: PlotPricing[] = safePlots.map(plot => ({
     id: plot.id,
-    name: plot.name,
-    projectName: plot.projectName,
-    currentPrice: plot.pricePerSqm,
-    lastUpdated: plot.updatedAt,
+    name: (plot as any).plot_name || plot.name || 'Unknown Plot',
+    projectName: (plot as any).project_name || plot.projectName || 'Unknown Project',
+    currentPrice: (plot as any).price_per_sqm || plot.pricePerSqm || 0,
+    lastUpdated: (() => {
+      const date = (plot as any).updated_at || plot.updatedAt
+      if (!date) return new Date()
+      // Handle Firebase timestamp objects
+      if (date.toDate && typeof date.toDate === 'function') {
+        return date.toDate()
+      }
+      // Handle Date objects
+      if (date instanceof Date) {
+        return date
+      }
+      // Handle string dates
+      const dateObj = new Date(date)
+      return isNaN(dateObj.getTime()) ? new Date() : dateObj
+    })(),
     updatedBy: 'System',
-    totalSqm: plot.totalSqm,
+    totalSqm: (plot as any).total_sqm || plot.totalSqm || 0,
     status: plot.status
   }))
 
   const filteredPlots = plotPricing.filter(plot => {
-    const matchesSearch = plot.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plot.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (plot.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (plot.projectName || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesProject = filterProject === 'all' || plot.projectName === filterProject
     return matchesSearch && matchesProject
   })
@@ -77,9 +91,9 @@ export default function PricingManagement() {
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       minimumFractionDigits: 0,
     }).format(amount)
   }
@@ -100,7 +114,7 @@ export default function PricingManagement() {
 
   // Chart data
   const priceHistoryData = safePriceUpdates.map(update => ({
-    date: update.updatedAt ? update.updatedAt.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    date: (update.updatedAt || new Date()).toISOString().slice(0, 10),
     price: update.newPrice || 0,
     plot: update.plotName || 'Unknown'
   }))

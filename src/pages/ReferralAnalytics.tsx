@@ -11,43 +11,93 @@ import {
   XCircle,
   CheckCircle
 } from 'lucide-react'
-import { useReferrals } from '../hooks/useFirebase'
+import { useReferrals, useWithdrawalRequests } from '../hooks/useFirebase'
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 
 export default function ReferralAnalytics() {
-  const { data: referrals, loading, error } = useReferrals()
+  const { data: referrals, loading: referralsLoading, error: referralsError } = useReferrals()
+  const { data: withdrawalRequests, loading: withdrawalsLoading, error: withdrawalsError } = useWithdrawalRequests()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid' | 'cancelled'>('all')
   const [selectedReferrer, setSelectedReferrer] = useState<any>(null)
   const [showReferrerModal, setShowReferrerModal] = useState(false)
 
-  const filteredReferrals = referrals.filter(referral => {
-    const matchesSearch = referral.referrerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         referral.referredUserEmail.toLowerCase().includes(searchTerm.toLowerCase())
+  // Ensure data is arrays
+  const safeReferrals = Array.isArray(referrals) ? referrals : []
+  const safeWithdrawalRequests = Array.isArray(withdrawalRequests) ? withdrawalRequests : []
+
+  // Combined data analysis - referrals and withdrawals
+  const filteredReferrals = safeReferrals.filter(referral => {
+    const matchesSearch = ((referral as any).referred_by || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ((referral as any).full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || referral.status === filterStatus
     
     return matchesSearch && matchesStatus
   })
 
-  // Calculate top referrers from real data
-  const topReferrers = referrals.reduce((acc, referral) => {
-    const existing = acc.find(r => r.referrerId === referral.referrerId)
-    if (existing) {
+  // Enhanced calculations including withdrawal request data
+  const allReferralUsers = new Set()
+  const referralCommissions = new Map()
+
+  // Process referrals collection data
+  safeReferrals.forEach(referral => {
+    const referrerId = referral.referrerId
+    const amount = referral.commission_amount || referral.commission || 0
+    const email = (referral as any).referred_by
+    
+    allReferralUsers.add(referrerId)
+    
+    if (referralCommissions.has(referrerId)) {
+      const existing = referralCommissions.get(referrerId)
+      existing.totalCommission += amount
       existing.totalReferrals++
-      existing.totalCommission += referral.commission
+      if (referral.status === 'paid') {
+        existing.paidCount++
+      }
     } else {
-      acc.push({
-        id: referral.referrerId,
-        email: referral.referrerEmail,
+      referralCommissions.set(referrerId, {
+        id: referrerId,
+        email: email,
+        totalCommission: amount,
         totalReferrals: 1,
-        totalCommission: referral.commission,
-        conversionRate: referral.status === 'paid' ? 100 : 0
+        paidCount: referral.status === 'paid' ? 1 : 0,
+        withdrawnAmount: 0
       })
     }
-    return acc
-  }, [] as any[]).sort((a, b) => b.totalCommission - a.totalCommission).slice(0, 10)
+  })
+
+  // Process withdrawal requests to find referral withdrawals
+  safeWithdrawalRequests.forEach(withdrawal => {
+    if (withdrawal.type === 'referral' && (withdrawal.referrer_code || withdrawal.referrerId)) {
+      const referrerId = withdrawal.referrer_code || withdrawal.referrerId
+      allReferralUsers.add(referrerId)
+      
+      const currentData = referralCommissions.get(referrerId) || {
+        id: referrerId,
+        email: withdrawal.userEmail || 'Unknown',
+        totalCommission: 0,
+        totalReferrals: 0,
+        paidCount: 0,
+        withdrawnAmount: 0
+      }
+      
+      currentData.withdrawnAmount += withdrawal.amount
+      referralCommissions.set(referrerId, currentData)
+    }
+  })
+
+  // Convert to array and sort
+  const topReferrers = Array.from(referralCommissions.values())
+    .map(item => ({
+      ...item,
+      conversionRate: item.totalCommission > 0 ? (item.paidCount / (item.totalReferrals || 1)) * 100 : 0,
+      pendingWithdrawal: (item.totalCommission - item.withdrawnAmount) > 0 ? 
+        (item.totalCommission - item.withdrawnAmount) : 0
+    }))
+    .sort((a, b) => b.totalCommission - a.totalCommission)
+    .slice(0, 10)
 
   const handleReferralAction = async (referralId: string, action: string) => {
     console.log(`Performing ${action} on referral ${referralId}`)
@@ -57,15 +107,17 @@ export default function ReferralAnalytics() {
     console.log('Exporting referrals to CSV')
   }
 
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-NG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       minimumFractionDigits: 0,
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'N/A'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -73,24 +125,30 @@ export default function ReferralAnalytics() {
     })
   }
 
-  // Chart data
+  // Loading and error states
+  const loading = referralsLoading || withdrawalsLoading
+  const error = referralsError || withdrawalsError
+
+  // Enhanced Chart data using both collections
   const statusChartData = [
-    { name: 'Paid', value: referrals.filter(r => r.status === 'paid').length, color: '#10B981' },
-    { name: 'Pending', value: referrals.filter(r => r.status === 'pending').length, color: '#F59E0B' },
-    { name: 'Cancelled', value: referrals.filter(r => r.status === 'cancelled').length, color: '#EF4444' },
+    { name: 'Paid', value: safeReferrals.filter(r => r.status === 'paid').length, color: '#10B981' },
+    { name: 'Pending', value: safeReferrals.filter(r => r.status === 'pending').length, color: '#F59E0B' },
+    { name: 'Cancelled', value: safeReferrals.filter(r => r.status === 'cancelled').length, color: '#EF4444' },
   ]
 
-  const monthlyData = referrals.reduce((acc, referral) => {
-    const month = referral.createdAt.toISOString().slice(0, 7)
+  // Withdrawal requests are now shown in the analysis section below
+
+  const monthlyData = safeReferrals.reduce((acc, referral) => {
+    const month = (referral.createdAt || new Date()).toISOString().slice(0, 7)
     const existing = acc.find(item => item.month === month)
     if (existing) {
       existing.referrals++
-      existing.commission += referral.commission
+      existing.commission += referral.commission_amount || referral.commission
     } else {
       acc.push({
         month,
         referrals: 1,
-        commission: referral.commission
+        commission: referral.commission_amount || referral.commission
       })
     }
     return acc
@@ -100,7 +158,7 @@ export default function ReferralAnalytics() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading referrals...</span>
+        <span className="ml-2">Loading referrals and withdrawal requests...</span>
       </div>
     )
   }
@@ -151,7 +209,8 @@ export default function ReferralAnalytics() {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Referrals</p>
-              <p className="text-2xl font-bold text-gray-900">{referrals.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{safeReferrals.length}</p>
+              <p className="text-xs text-gray-500">From referrals collection</p>
             </div>
           </div>
         </div>
@@ -164,7 +223,7 @@ export default function ReferralAnalytics() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Paid Referrals</p>
               <p className="text-2xl font-bold text-gray-900">
-                {referrals.filter(r => r.status === 'paid').length}
+                {safeReferrals.filter(r => r.status === 'paid').length}
               </p>
             </div>
           </div>
@@ -178,7 +237,7 @@ export default function ReferralAnalytics() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Commission</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(referrals.reduce((sum, r) => sum + r.commission, 0))}
+                {formatCurrency(safeReferrals.reduce((sum, r) => sum + (r.commission_amount || r.commission), 0))}
               </p>
             </div>
           </div>
@@ -192,9 +251,39 @@ export default function ReferralAnalytics() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Referrers</p>
               <p className="text-2xl font-bold text-gray-900">
-                {new Set(referrals.map(r => r.referrerId)).size}
+                {new Set(safeReferrals.map(r => r.referrerId)).size}
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Withdrawal Requests Analysis */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold text-blue-900 mb-4">Withdrawal Requests Analysis</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-4">
+            <p className="text-sm font-medium text-gray-600">Total Withdrawal Requests</p>
+            <p className="text-2xl font-bold text-blue-900">{safeWithdrawalRequests.length}</p>
+            <p className="text-xs text-gray-500">From withdrawalRequests collection</p>
+          </div>
+          <div className="bg-white rounded-lg p-4">
+            <p className="text-sm font-medium text-gray-600">Referral Withdrawals</p>
+            <p className="text-2xl font-bold text-green-900">
+              {safeWithdrawalRequests.filter(w => w.type === 'referral').length}
+            </p>
+            <p className="text-xs text-gray-500">Type = 'referral'</p>
+          </div>
+          <div className="bg-white rounded-lg p-4">
+            <p className="text-sm font-medium text-gray-600">Referral Withdrawal Amount</p>
+            <p className="text-2xl font-bold text-purple-900">
+              {formatCurrency(
+                safeWithdrawalRequests
+                  .filter(w => w.type === 'referral')
+                  .reduce((sum, w) => sum + w.amount, 0)
+              )}
+            </p>
+            <p className="text-xs text-gray-500">Total withdrawn from referrals</p>
           </div>
         </div>
       </div>
@@ -328,13 +417,13 @@ export default function ReferralAnalytics() {
               {filteredReferrals.map((referral) => (
                 <tr key={referral.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{referral.referrerEmail}</div>
+                    <div className="text-sm font-medium text-gray-900">{(referral as any).referred_by || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{referral.referredUserEmail}</div>
+                    <div className="text-sm font-medium text-gray-900">{(referral as any).full_name || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(referral.commission)}
+                    {formatCurrency(referral.commission_amount || referral.commission)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -409,15 +498,15 @@ export default function ReferralAnalytics() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referrer</label>
-                  <p className="text-sm text-gray-900">{selectedReferrer.referrerEmail}</p>
+                  <p className="text-sm text-gray-900">{(selectedReferrer as any).referred_by || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referred User</label>
-                  <p className="text-sm text-gray-900">{selectedReferrer.referredUserEmail}</p>
+                  <p className="text-sm text-gray-900">{(selectedReferrer as any).full_name || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Commission</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(selectedReferrer.commission)}</p>
+                  <p className="text-sm text-gray-900">{formatCurrency(selectedReferrer.commission_amount || selectedReferrer.commission)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>

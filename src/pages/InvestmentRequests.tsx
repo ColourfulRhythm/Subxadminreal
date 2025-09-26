@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   TrendingUp, 
   Search, 
@@ -12,15 +12,22 @@ import {
   DollarSign,
   Users,
   Wifi,
-  WifiOff
+  WifiOff,
+  Shield
 } from 'lucide-react'
 import { InvestmentRequest } from '../types'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
-import { doc, updateDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+// Removed unused imports
+import { InvestmentApprovalService, InvestmentApprovalData } from '../services/investmentApprovalService'
+import DocumentVerification from '../components/DocumentVerification'
+import { FileManagementService } from '../services/fileManagement'
+import BulkActions from '../components/BulkActions'
+import { QueueManagementService } from '../services/queueManagement'
+import { useOptimizedFirebase, useBatchOperations } from '../hooks/useOptimizedFirebase'
 
 export default function InvestmentRequests() {
+  console.log('🚀🚀🚀 INVESTMENT REQUESTS COMPONENT LOADED - NEW VERSION RUNNING!')
   const { data: firebaseRequests, loading, error } = useInvestmentRequests()
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -28,19 +35,39 @@ export default function InvestmentRequests() {
   const [filterPayment, setFilterPayment] = useState<'all' | 'pending' | 'verified' | 'failed'>('all')
   const [selectedRequest, setSelectedRequest] = useState<InvestmentRequest | null>(null)
   const [showRequestModal, setShowRequestModal] = useState(false)
+  const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'disconnected' | 'error'>('connected')
+  const [autoQueueEnabled, setAutoQueueEnabled] = useState(false)
+  const [batchOperationResults, setBatchOperationResults] = useState<any>(null)
+  
+  const { processBatch } = useBatchOperations()
 
   // Always use real Firebase data
   const displayRequests = firebaseRequests
+
+  // Auto-queue system for high volume scenarios
+  useEffect(() => {
+    if (autoQueueEnabled) {
+      const queueInterval = setInterval(async () => {
+        try {
+          await QueueManagementService.autoQueueRequests()
+        } catch (error) {
+          console.error('Auto-queue error:', error)
+        }
+      }, 60000) // Check every minute
+      
+      return () => clearInterval(queueInterval)
+    }
+  }, [autoQueueEnabled])
   
   const filteredRequests = displayRequests.filter(request => {
     const userName = request.userName || request.user_name || ''
     const userEmail = request.userEmail || request.user_email || ''
     const plotName = request.plotName || request.plot_name || request.project_title || ''
     
-    const matchesSearch = userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plotName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (plotName || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || request.status === filterStatus
     const matchesPayment = filterPayment === 'all' || request.paymentStatus === filterPayment
@@ -70,42 +97,157 @@ export default function InvestmentRequests() {
 
   const handleRequestAction = async (requestId: string, action: string) => {
     try {
-      console.log(`Performing ${action} on request ${requestId}`)
+      console.log(`🚀🚀🚀 NEW COMPREHENSIVE APPROVAL FUNCTION CALLED: Performing ${action} on request ${requestId}`)
+      console.log(`🚀🚀🚀 This is the UPDATED function - if you see this, the new code is running!`)
       
-      // Update status in Firebase
-      const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending'
-      const docRef = doc(db, 'investment_requests', requestId)
-      await updateDoc(docRef, {
-        status: newStatus,
-        processedAt: new Date(),
-        processedBy: 'admin' // You can replace this with actual admin user ID
-      })
+      if (action === 'approve') {
+        // Find the request data
+        const request = displayRequests.find(r => r.id === requestId)
+        if (!request) {
+          throw new Error('Request not found')
+        }
+
+        console.log('📋 Request data found:', {
+          id: request.id,
+          status: request.status,
+          userId: request.userId || request.user_id,
+          plotId: request.plotId,
+          projectId: request.projectId || request.project_id,
+          amountPaid: request.Amount_paid || request.amount_paid,
+          sqmPurchased: request.sqm_purchased || request.sqm
+        })
+
+        // Prepare approval data
+        const approvalData: InvestmentApprovalData = {
+          requestId: requestId,
+          userId: String(request.userId || request.user_id || ''),
+          plotId: String(request.plotId || ''),
+          projectId: String(request.projectId || request.project_id || 'default-project'),
+          amountPaid: request.Amount_paid || request.amount_paid || 0,
+          sqmPurchased: request.sqm_purchased || request.sqm || 0,
+          pricePerSqm: request.current_price_per_sqm || request.pricePerSqm || request.price_per_sqm || 0,
+          referralCode: request.referralCode || request.referral_code,
+          referralCommission: request.referralCommission || request.referral_commission || 0,
+          adminId: 'admin' // You can replace this with actual admin user ID
+        }
+
+        console.log('🔧 Calling comprehensive approval service with data:', approvalData)
+
+        // Use comprehensive approval service
+        const result = await InvestmentApprovalService.approveInvestmentRequest(approvalData)
+        
+        console.log('📊 Approval service result:', result)
+        
+        if (result.success) {
+          console.log('✅ Investment approved successfully:', result.message)
+          alert(`✅ ${result.message}${result.investmentId ? `\nInvestment ID: ${result.investmentId}` : ''}`)
+        } else {
+          throw new Error(result.message)
+        }
+      } else if (action === 'reject') {
+        console.log('🚫 Using comprehensive rejection service')
+        // Use rejection service
+        const result = await InvestmentApprovalService.rejectInvestmentRequest(
+          requestId, 
+          'admin', // You can replace this with actual admin user ID
+          'Rejected by admin'
+        )
+        
+        if (result.success) {
+          console.log('✅ Investment rejected successfully:', result.message)
+          alert(`✅ ${result.message}`)
+        } else {
+          throw new Error(result.message)
+        }
+      }
       
-      console.log(`Successfully ${action}d request ${requestId}`)
-      
-      // Update local state for immediate UI feedback
-      // Note: The useInvestmentRequests hook will refetch data automatically
-      console.log('Request updated successfully')
+      console.log(`✅ Successfully ${action}d request ${requestId}`)
     } catch (error) {
-      console.error(`Error ${action}ing request ${requestId}:`, error)
-      alert(`Failed to ${action} request. Please try again.`)
+      console.error(`❌ Error ${action}ing request ${requestId}:`, error)
+      alert(`❌ Failed to ${action} request: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   const handleMoveToInvestments = async (requestId: string) => {
     try {
-      console.log(`Moving request ${requestId} to investments collection`)
-      // Update status to completed in Firebase
-      const docRef = doc(db, 'investment_requests', requestId)
-      await updateDoc(docRef, {
-        status: 'completed',
-        processedAt: new Date(),
-        processedBy: 'admin'
+      console.log(`🔄 Moving request ${requestId} to completed status`)
+      
+      // Find the request to get investment ID
+      const request = displayRequests.find(r => r.id === requestId)
+      if (!request) {
+        throw new Error('Request not found')
+      }
+
+      console.log('📋 Request details:', {
+        id: request.id,
+        status: request.status,
+        investmentId: request.investmentId,
+        userId: request.userId || request.user_id,
+        plotId: request.plotId,
+        projectId: request.projectId || request.project_id
       })
-      console.log(`Successfully moved request ${requestId} to investments (status updated to completed)`)
+
+      // Check if investment record exists
+      if (!request.investmentId) {
+        console.log('⚠️ No investment record found. This request was approved by the old process.')
+        console.log('🔧 Creating investment record now...')
+        
+        // Create the investment record that should have been created during approval
+        const approvalData: InvestmentApprovalData = {
+          requestId: requestId,
+          userId: String(request.userId || request.user_id || ''),
+          plotId: String(request.plotId || ''),
+          projectId: String(request.projectId || request.project_id || 'default-project'),
+          amountPaid: request.Amount_paid || request.amount_paid || 0,
+          sqmPurchased: request.sqm_purchased || request.sqm || 0,
+          pricePerSqm: request.current_price_per_sqm || request.pricePerSqm || request.price_per_sqm || 0,
+          referralCode: request.referralCode || request.referral_code,
+          referralCommission: request.referralCommission || request.referral_commission || 0,
+          adminId: 'admin'
+        }
+
+        // Use comprehensive approval service to create missing records
+        const result = await InvestmentApprovalService.approveInvestmentRequest(approvalData)
+        
+        if (result.success) {
+          console.log('✅ Investment record created successfully:', result.message)
+          alert(`✅ Investment record created successfully!\nInvestment ID: ${result.investmentId}\n\nNow moving to completed status...`)
+          
+          // Now try to complete it
+          const completeResult = await InvestmentApprovalService.completeInvestment(
+            requestId,
+            result.investmentId!,
+            'admin'
+          )
+          
+          if (completeResult.success) {
+            console.log('✅ Investment moved to completed successfully:', completeResult.message)
+            alert(`✅ ${completeResult.message}`)
+          } else {
+            throw new Error(completeResult.message)
+          }
+        } else {
+          throw new Error(result.message)
+        }
+      } else {
+        // Investment record exists, just complete it
+        console.log('✅ Investment record exists, completing...')
+        const result = await InvestmentApprovalService.completeInvestment(
+          requestId,
+          request.investmentId,
+          'admin'
+        )
+        
+        if (result.success) {
+          console.log('✅ Investment moved to completed successfully:', result.message)
+          alert(`✅ ${result.message}`)
+        } else {
+          throw new Error(result.message)
+        }
+      }
     } catch (error) {
-      console.error(`Error moving request ${requestId} to investments:`, error)
-      alert(`Failed to move request to investments. Please try again.`)
+      console.error(`❌ Error moving request ${requestId} to completed:`, error)
+      alert(`❌ Failed to move request to completed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -116,6 +258,37 @@ export default function InvestmentRequests() {
       setFirebaseStatus(result.connected ? 'connected' : 'error')
     } catch (error) {
       setFirebaseStatus('error')
+    }
+  }
+
+  const handleDocumentVerification = async (requestId: string, verificationData: any) => {
+    try {
+      console.log('🔍 Verifying documents for request:', requestId, verificationData)
+      const result = await InvestmentApprovalService.verifyDocuments(
+        requestId,
+        verificationData,
+        'admin' // You can replace this with actual admin user ID
+      )
+      
+      if (result.success) {
+        console.log('✅ Documents verified successfully:', result.message)
+        alert(`✅ ${result.message}`)
+        setShowDocumentModal(false)
+      } else {
+        throw new Error(result.message)
+      }
+    } catch (error) {
+      console.error('❌ Error verifying documents:', error)
+      alert(`❌ Failed to verify documents: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleDocumentDownload = async (url: string, filename: string) => {
+    try {
+      await FileManagementService.downloadDocument(url, filename)
+    } catch (error) {
+      console.error('❌ Error downloading document:', error)
+      alert(`❌ Failed to download document: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -226,6 +399,27 @@ export default function InvestmentRequests() {
             <p className="text-sm text-red-600 mt-1">
               ❌ Firebase Error: {error}
             </p>
+          )}
+          {/* High-volume processing indicator */}
+          {firebaseRequests.length > 100 && (
+            <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-orange-500" />
+                <span className="text-sm text-orange-700 font-medium">
+                  High Volume Mode: {firebaseRequests.length} pending requests detected
+                </span>
+                <button
+                  onClick={() => setAutoQueueEnabled(!autoQueueEnabled)}
+                  className={`ml-auto px-3 py-1 text-xs rounded ${
+                    autoQueueEnabled
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-gray-100 text-gray-700 border border-gray-200'
+                  }`}
+                >
+                  {autoQueueEnabled ? 'Auto-Queue ON' : 'Enable Auto-Queue'}
+                </button>
+              </div>
+            </div>
           )}
         </div>
         <div className="flex space-x-3">
@@ -371,13 +565,42 @@ export default function InvestmentRequests() {
       {/* Debug Tools */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Debug Tools</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
             onClick={testFirebaseConnection}
             className="btn-secondary flex items-center justify-center space-x-2"
           >
             <Wifi className="h-4 w-4" />
             <span>Test Firebase Connection</span>
+          </button>
+          <button 
+            onClick={async () => {
+              console.log('🧪 TESTING COMPREHENSIVE APPROVAL SERVICE DIRECTLY...')
+              try {
+                const testData: InvestmentApprovalData = {
+                  requestId: 'test-request-123',
+                  userId: 'test-user-456',
+                  plotId: 'test-plot-789',
+                  projectId: 'test-project-101',
+                  amountPaid: 50000,
+                  sqmPurchased: 100,
+                  pricePerSqm: 500,
+                  referralCode: 'TEST123',
+                  referralCommission: 2500,
+                  adminId: 'admin'
+                }
+                const result = await InvestmentApprovalService.approveInvestmentRequest(testData)
+                console.log('🧪 Test result:', result)
+                alert(`Test completed: ${result.success ? 'SUCCESS' : 'FAILED'}\nMessage: ${result.message}`)
+              } catch (error) {
+                console.error('🧪 Test error:', error)
+                alert(`Test failed: ${error}`)
+              }
+            }}
+            className="btn-primary flex items-center justify-center space-x-2"
+          >
+            <CheckCircle className="h-4 w-4" />
+            <span>Test Comprehensive Approval</span>
           </button>
           <button className="btn-secondary flex items-center justify-center space-x-2">
             <AlertTriangle className="h-4 w-4" />
@@ -431,6 +654,15 @@ export default function InvestmentRequests() {
         </div>
       </div>
 
+      {/* High-Volume Bulk Actions */}
+      {filteredRequests.length > 0 && (
+        <BulkActions 
+          items={filteredRequests} 
+          onUpdate={() => window.location.reload()}
+          type="investment_requests"
+        />
+      )}
+
       {/* Requests Table */}
       <div className="card">
         <div className="overflow-x-auto">
@@ -454,6 +686,9 @@ export default function InvestmentRequests() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Referral
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Documents
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
@@ -510,31 +745,91 @@ export default function InvestmentRequests() {
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      {request.documents_uploaded ? (
+                        <div className="flex items-center space-x-1">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          <span className="text-xs text-green-600">Uploaded</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          <XCircle className="h-4 w-4 text-red-500" />
+                          <span className="text-xs text-red-600">Missing</span>
+                        </div>
+                      )}
+                      {request.identity_verified && request.payment_verified ? (
+                        <div className="flex items-center space-x-1">
+                          <CheckCircle className="h-4 w-4 text-blue-500" />
+                          <span className="text-xs text-blue-600">Verified</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-4 w-4 text-yellow-500" />
+                          <span className="text-xs text-yellow-600">Pending</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Debug info - remove this after testing */}
+                    <div className="text-xs text-gray-400 mt-1">
+                      Debug: docs_uploaded={String(request.documents_uploaded)}, 
+                      id_verified={String(request.identity_verified)}, 
+                      pay_verified={String(request.payment_verified)}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(request.createdAt || request.created_at || new Date())}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
+                      {/* Debug: Button count */}
+                      <span className="text-xs text-gray-400 mr-2">
+                        Buttons: {1 + (request.status === 'pending' || request.status === 'pending_approval' ? 2 : 0) + (request.status === 'approved' ? 1 : 0)}
+                      </span>
                       <button
                         onClick={() => {
                           setSelectedRequest(request)
                           setShowRequestModal(true)
                         }}
                         className="text-blue-600 hover:text-blue-900"
+                        title="View Request Details"
                       >
                         <Eye className="h-4 w-4" />
+                      </button>
+                      {/* Shield button for document verification */}
+                      <button
+                        onClick={() => {
+                          console.log('🛡️ Shield button clicked for request:', request.id)
+                          console.log('📄 Request documents_uploaded:', request.documents_uploaded)
+                          setSelectedRequest(request)
+                          setShowDocumentModal(true)
+                        }}
+                        className="text-purple-600 hover:text-purple-900 bg-purple-50 px-2 py-1 rounded flex items-center space-x-1"
+                        title="Verify Documents"
+                      >
+                        <Shield className="h-4 w-4" />
+                        <span className="text-xs">Verify</span>
                       </button>
                       {(request.status === 'pending' || request.status === 'pending_approval') && (
                         <>
                           <button
-                            onClick={() => handleRequestAction(request.id, 'approve')}
+                            onClick={() => {
+                              console.log('🟢🟢🟢 NEW APPROVE BUTTON CLICKED for request:', request.id)
+                              console.log('🟢🟢🟢 Calling handleRequestAction with comprehensive workflow!')
+                              handleRequestAction(request.id, 'approve')
+                            }}
                             className="text-green-600 hover:text-green-900"
+                            title="Approve Investment Request"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleRequestAction(request.id, 'reject')}
+                            onClick={() => {
+                              console.log('🔴 REJECT BUTTON CLICKED for request:', request.id)
+                              handleRequestAction(request.id, 'reject')
+                            }}
                             className="text-red-600 hover:text-red-900"
+                            title="Reject Investment Request"
                           >
                             <XCircle className="h-4 w-4" />
                           </button>
@@ -542,8 +837,12 @@ export default function InvestmentRequests() {
                       )}
                       {request.status === 'approved' && (
                         <button
-                          onClick={() => handleMoveToInvestments(request.id)}
+                          onClick={() => {
+                            console.log('🔵 MOVE TO INVESTMENTS BUTTON CLICKED for request:', request.id)
+                            handleMoveToInvestments(request.id)
+                          }}
                           className="text-blue-600 hover:text-blue-900"
+                          title="Move to Completed Status"
                         >
                           <ArrowRight className="h-4 w-4" />
                         </button>
@@ -696,6 +995,29 @@ export default function InvestmentRequests() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Verification Modal */}
+      {showDocumentModal && selectedRequest && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Document Verification</h3>
+              <button
+                onClick={() => setShowDocumentModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <DocumentVerification
+              request={selectedRequest}
+              onVerify={handleDocumentVerification}
+              onDownload={handleDocumentDownload}
+            />
           </div>
         </div>
       )}

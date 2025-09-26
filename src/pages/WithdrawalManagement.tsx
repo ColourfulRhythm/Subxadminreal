@@ -29,8 +29,8 @@ export default function WithdrawalManagement() {
     const userName = withdrawal.userName || ''
     const userEmail = withdrawal.userEmail || ''
     
-    const matchesSearch = userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         userEmail.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = (userName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = filterStatus === 'all' || withdrawal.status === filterStatus
     const matchesType = filterType === 'all' || withdrawal.type === filterType
@@ -327,8 +327,8 @@ export default function WithdrawalManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div>
-                        <div>{withdrawal.bankDetails.accountNumber}</div>
-                        <div className="text-gray-500">{withdrawal.bankDetails.bankName}</div>
+                        <div>{withdrawal.bankDetails?.accountNumber || 'N/A'}</div>
+                        <div className="text-gray-500">{withdrawal.bankDetails?.bankName || 'N/A'}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -419,9 +419,9 @@ export default function WithdrawalManagement() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Bank Details</label>
                   <div className="text-sm text-gray-900">
-                    <p>Account: {selectedWithdrawal.bankDetails.accountNumber}</p>
-                    <p>Bank: {selectedWithdrawal.bankDetails.bankName}</p>
-                    <p>Account Name: {selectedWithdrawal.bankDetails.accountName}</p>
+                    <p>Account: {selectedWithdrawal.bankDetails?.accountNumber || 'N/A'}</p>
+                    <p>Bank: {selectedWithdrawal.bankDetails?.bankName || 'N/A'}</p>
+                    <p>Account Name: {selectedWithdrawal.bankDetails?.accountName || 'N/A'}</p>
                   </div>
                 </div>
                 <div>

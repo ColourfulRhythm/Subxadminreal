@@ -114,6 +114,54 @@ export interface InvestmentRequest {
   referral_commission?: number
   created_at?: Date
   sqm_purchased?: number // Added for portfolio calculations
+  // Additional fields for comprehensive approval workflow
+  projectId?: string
+  project_id?: string
+  investmentId?: string // Added to track created investment record
+  approvedAt?: Date
+  approved_by?: string
+  processedBy?: string
+  rejection_reason?: string
+  completedAt?: Date
+  completed_by?: string
+  
+  // New security verification fields
+  means_of_id_url?: string           // URL to identity document (passport, driver's license, etc.)
+  payment_receipt_url?: string       // URL to payment receipt/proof
+  documents_uploaded?: boolean       // Flag indicating if documents were uploaded
+  uploaded_at?: Date                 // Timestamp when documents were uploaded
+  
+  // Additional verification fields
+  identity_verified?: boolean        // Admin verification status
+  payment_verified?: boolean         // Admin payment verification status
+  verification_notes?: string        // Admin notes during verification
+  verified_by?: string             // Admin who verified the documents
+  verified_at?: Date                 // When verification was completed
+}
+
+export interface Investment {
+  id: string
+  userId: string
+  plotId: string
+  projectId: string
+  amount_paid: number
+  Amount_paid?: number // Support both field names
+  sqm_purchased: number
+  sqm?: number // Support both field names
+  price_per_sqm: number
+  pricePerSqm?: number // Support both field names
+  status: 'active' | 'completed' | 'cancelled'
+  investment_type: 'plot_purchase' | 'referral_commission' | 'other'
+  created_at: Date
+  createdAt?: Date // Support both field names
+  approved_at?: Date
+  approved_by?: string
+  completed_at?: Date
+  completed_by?: string
+  referral_code?: string
+  referral_commission?: number
+  source: string
+  original_request_id?: string
 }
 
 export interface WithdrawalRequest {
@@ -132,6 +180,10 @@ export interface WithdrawalRequest {
   createdAt: Date
   processedAt?: Date
   processedBy?: string
+  // Referral withdrawal fields
+  referrer_code?: string
+  referrerId?: string
+  referral_amount?: number
 }
 
 export interface ReferralData {
@@ -140,7 +192,8 @@ export interface ReferralData {
   referrerEmail: string
   referredUserId: string
   referredUserEmail: string
-  commission: number
+  commission: number // Keep for backward compatibility
+  commission_amount: number // New field for commission data
   status: 'pending' | 'paid' | 'cancelled'
   createdAt: Date
   paidAt?: Date
