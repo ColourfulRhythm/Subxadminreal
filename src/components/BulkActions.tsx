@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { 
   CheckSquare, 
   Square, 
@@ -9,12 +9,9 @@ import {
   Download,
   RefreshCw,
   Tag,
-  FileCheck,
-  Send
+  FileCheck
 } from 'lucide-react'
-import { InvestmentRequest, User } from '../types'
 import { BulkOperationsService } from '../services/bulkOperations'
-import { QueueManagementService } from '../services/queueManagement'
 
 interface BulkActionsProps {
   items: any[]
@@ -36,15 +33,7 @@ export default function BulkActions({ items, onUpdate, type }: BulkActionsProps)
     }
   }
 
-  const handleSelectItem = (itemId: string) => {
-    const newSelected = new Set(selectedItems)
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId)
-    } else {
-      newSelected.add(itemId)
-    }
-    setSelectedItems(newSelected)
-  }
+  // Removed unused handleSelectItem function
 
   const handleBulkAction = async (action: string) => {
     if (selectedItems.size === 0) return
@@ -92,7 +81,7 @@ export default function BulkActions({ items, onUpdate, type }: BulkActionsProps)
       }
 
       setResults(result)
-      if (result.success) {
+      if (result && result.success) {
         onUpdate() // Refresh data
         setSelectedItems(new Set())
       }
@@ -122,16 +111,7 @@ export default function BulkActions({ items, onUpdate, type }: BulkActionsProps)
     }
   }
 
-  const getActionIcon = (action: string) => {
-    switch (action) {
-      case 'approve_requests': return <CheckSquare className="h-4 w-4" />
-      case 'reject_requests': return <Square className="h-4 w-4" />
-      case 'verify_users': return <FileCheck className="h-4 w-4" />
-      case 'activate_users': return <Users className="h-4 w-4" />
-      case 'auto_process_low_value': return <Zap className="h-4 w-4" />
-      default: return <Square className="h-4 w-4" />
-    }
-  }
+  // Removed unused getActionIcon function
 
   const availableActions = {
     investment_requests: [
@@ -237,7 +217,7 @@ export default function BulkActions({ items, onUpdate, type }: BulkActionsProps)
                   <div>
                     <div className="font-medium">Errors:</div>
                     <ul className="ml-4 list-disc">
-                      {results.errors.slice(0, 3).map((error, index) => (
+                      {results.errors.slice(0, 3).map((error: string, index: number) => (
                         <li key={index} className="text-xs">{error}</li>
                       ))}
                     </ul>
