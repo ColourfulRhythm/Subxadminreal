@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { User } from '../types'
 import { useUsers, useInvestments } from '../hooks/useFirebase'
+import { exportUsersToCSV } from '../utils/csvExport'
 
 export default function UserManagement() {
   const { data: users, loading, error } = useUsers()
@@ -19,6 +20,7 @@ export default function UserManagement() {
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
+  const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'name'>('latest')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
   
@@ -50,21 +52,60 @@ export default function UserManagement() {
       .reduce((total, inv) => total + ((inv as any).sqm_purchased || inv.sqm || 0), 0)
   }
   
-  const filteredUsers = safeUsers.filter(user => {
-    // Use actual field names from your Firebase: full_name, email
-    const fullName = user.full_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
-    const userEmail = user.email || ''
-    const matchesSearch = (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (fullName || '').toLowerCase().includes(searchTerm.toLowerCase())
+  // Helper function to get user's created_at date for sorting
+  const getUserCreatedDate = (user: User): Date => {
+    if (!user.created_at) return new Date(0) // Very old date if missing
     
-    // Use status field from user_profiles
-    const isActive = user.status === 'active'
-    const matchesFilter = filterStatus === 'all' || 
-                         (filterStatus === 'active' && isActive) ||
-                         (filterStatus === 'inactive' && !isActive)
+    // Handle Firebase timestamp objects
+    if (user.created_at && typeof user.created_at === 'object' && 'toDate' in user.created_at) {
+      return (user.created_at as any).toDate()
+    }
     
-    return matchesSearch && matchesFilter
-  })
+    // Handle Date objects
+    if (user.created_at instanceof Date) {
+      return user.created_at
+    }
+    
+    // Handle string dates
+    const dateObj = new Date(user.created_at as any)
+    return isNaN(dateObj.getTime()) ? new Date(0) : dateObj
+  }
+
+  const filteredUsers = safeUsers
+    .filter(user => {
+      // Use actual field names from your Firebase: full_name, email
+      const fullName = user.full_name || `${user.firstName || ''} ${user.lastName || ''}`.trim()
+      const userEmail = user.email || ''
+      const matchesSearch = (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (fullName || '').toLowerCase().includes(searchTerm.toLowerCase())
+      
+      // Use status field from user_profiles
+      const isActive = user.status === 'active'
+      const matchesFilter = filterStatus === 'all' || 
+                           (filterStatus === 'active' && isActive) ||
+                           (filterStatus === 'inactive' && !isActive)
+      
+      return matchesSearch && matchesFilter
+    })
+    .sort((a, b) => {
+      if (sortBy === 'latest') {
+        // Sort by latest signups first (newest first)
+        const dateA = getUserCreatedDate(a).getTime()
+        const dateB = getUserCreatedDate(b).getTime()
+        return dateB - dateA
+      } else if (sortBy === 'oldest') {
+        // Sort by oldest signups first
+        const dateA = getUserCreatedDate(a).getTime()
+        const dateB = getUserCreatedDate(b).getTime()
+        return dateA - dateB
+      } else if (sortBy === 'name') {
+        // Sort alphabetically by name
+        const nameA = (a.full_name || `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email || '').toLowerCase()
+        const nameB = (b.full_name || `${b.firstName || ''} ${b.lastName || ''}`.trim() || b.email || '').toLowerCase()
+        return nameA.localeCompare(nameB)
+      }
+      return 0
+    })
 
   const handleUserAction = async (userId: string, action: string) => {
     // Implement user actions (activate, deactivate, verify, etc.)
@@ -72,8 +113,7 @@ export default function UserManagement() {
   }
 
   const handleExportUsers = () => {
-    // Implement CSV export
-    console.log('Exporting users to CSV')
+    exportUsersToCSV(filteredUsers, safeInvestments)
   }
 
   const formatCurrency = (amount: number) => {
@@ -240,6 +280,15 @@ export default function UserManagement() {
               <option value="all">All Users</option>
               <option value="active">Active Only</option>
               <option value="inactive">Inactive Only</option>
+            </select>
+            <select
+              className="input-field"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'latest' | 'oldest' | 'name')}
+            >
+              <option value="latest">Latest Signups</option>
+              <option value="oldest">Oldest Signups</option>
+              <option value="name">Sort by Name</option>
             </select>
           </div>
         </div>

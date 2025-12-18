@@ -7,14 +7,19 @@ import {
   TrendingUp, 
   CheckCircle,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
 import { RecentActivity } from '../types'
-import { useDashboardStats } from '../hooks/useFirebase'
+import { useDashboardStats, useUsers, usePlots, useProjects } from '../hooks/useFirebase'
+import { exportDashboardStatsToCSV } from '../utils/csvExport'
 
 export default function Dashboard() {
   const { stats, loading, error } = useDashboardStats()
+  const { data: users } = useUsers()
+  const { data: plots } = usePlots()
+  const { data: projects } = useProjects()
 
   // Use real Firebase data if available, otherwise fallback to zero values
   const displayStats = stats || {
@@ -52,6 +57,13 @@ export default function Dashboard() {
     // The stats will be refreshed automatically by the useDashboardStats hook
     await new Promise(resolve => setTimeout(resolve, 1000))
     setIsRefreshing(false)
+  }
+
+  const handleExportDashboard = () => {
+    const safeUsers = Array.isArray(users) ? users : []
+    const safePlots = Array.isArray(plots) ? plots : []
+    const safeProjects = Array.isArray(projects) ? projects : []
+    exportDashboardStatsToCSV(displayStats, safeUsers, safePlots, safeProjects)
   }
 
   const formatCurrency = (amount: number) => {
@@ -104,14 +116,23 @@ export default function Dashboard() {
             </p>
           )}
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>Refresh Data</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleExportDashboard}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh Data</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

@@ -11,10 +11,12 @@ import {
   DollarSign,
   XCircle,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Download
 } from 'lucide-react'
 import { Plot } from '../types'
 import { usePlots } from '../hooks/useFirebase'
+import { exportPlotsToCSV } from '../utils/csvExport'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 export default function PlotManagement() {
@@ -73,6 +75,10 @@ export default function PlotManagement() {
     setTimeout(() => setIsRecalculating(false), 2000)
   }
 
+  const handleExportPlots = () => {
+    exportPlotsToCSV(filteredPlots)
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -126,14 +132,23 @@ export default function PlotManagement() {
           <h1 className="text-2xl font-bold text-gray-900">Plot Management</h1>
           <p className="text-gray-600">Monitor plot availability, pricing, and ownership</p>
         </div>
-        <button
-          onClick={handleRecalculateMetrics}
-          disabled={isRecalculating}
-          className="btn-secondary flex items-center space-x-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
-          <span>{isRecalculating ? 'Recalculating...' : 'Recalculate Metrics'}</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleExportPlots}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </button>
+          <button
+            onClick={handleRecalculateMetrics}
+            disabled={isRecalculating}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+            <span>{isRecalculating ? 'Recalculating...' : 'Recalculate Metrics'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
