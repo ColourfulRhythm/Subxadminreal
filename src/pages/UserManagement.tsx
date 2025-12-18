@@ -20,6 +20,7 @@ export default function UserManagement() {
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
+  const [filterSignupDate, setFilterSignupDate] = useState<'all' | 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth'>('all')
   const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'name'>('latest')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
@@ -85,7 +86,45 @@ export default function UserManagement() {
                            (filterStatus === 'active' && isActive) ||
                            (filterStatus === 'inactive' && !isActive)
       
-      return matchesSearch && matchesFilter
+      // Filter by signup date
+      const userCreatedDate = getUserCreatedDate(user)
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      let matchesSignupDate = true
+      
+      if (filterSignupDate !== 'all') {
+        // Normalize user date to start of day for comparison
+        const userDate = new Date(userCreatedDate.getFullYear(), userCreatedDate.getMonth(), userCreatedDate.getDate())
+        
+        switch (filterSignupDate) {
+          case 'today':
+            matchesSignupDate = userDate.getTime() === today.getTime()
+            break
+          case 'last7days':
+            const last7Days = new Date(today)
+            last7Days.setDate(last7Days.getDate() - 7)
+            matchesSignupDate = userDate >= last7Days && userDate <= tomorrow
+            break
+          case 'last30days':
+            const last30Days = new Date(today)
+            last30Days.setDate(last30Days.getDate() - 30)
+            matchesSignupDate = userDate >= last30Days && userDate <= tomorrow
+            break
+          case 'thisMonth':
+            const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+            matchesSignupDate = userDate >= thisMonthStart && userDate <= tomorrow
+            break
+          case 'lastMonth':
+            const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+            matchesSignupDate = userDate >= lastMonthStart && userDate <= lastMonthEnd
+            break
+        }
+      }
+      
+      return matchesSearch && matchesFilter && matchesSignupDate
     })
     .sort((a, b) => {
       if (sortBy === 'latest') {
@@ -280,6 +319,18 @@ export default function UserManagement() {
               <option value="all">All Users</option>
               <option value="active">Active Only</option>
               <option value="inactive">Inactive Only</option>
+            </select>
+            <select
+              className="input-field"
+              value={filterSignupDate}
+              onChange={(e) => setFilterSignupDate(e.target.value as 'all' | 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth')}
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="last7days">Last 7 Days</option>
+              <option value="last30days">Last 30 Days</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
             </select>
             <select
               className="input-field"
