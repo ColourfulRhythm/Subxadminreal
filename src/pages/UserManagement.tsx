@@ -31,17 +31,34 @@ export default function UserManagement() {
   
   // Helper function to get phone number from user object (handles various field names)
   const getUserPhone = (user: any): string => {
-    // Check multiple possible field names
-    return user.phone || 
-           user.phone_number || 
-           user.Phone || 
-           user.phoneNumber ||
-           user.telephone ||
-           user.mobile ||
-           user.mobile_number ||
-           user.contact_number ||
-           user.contact ||
-           ''
+    if (!user) return ''
+    
+    // Check multiple possible field names (case-insensitive check)
+    const phoneFields = [
+      'phone', 'phone_number', 'Phone', 'phoneNumber', 'PHONE',
+      'telephone', 'mobile', 'mobile_number', 'Mobile', 'MOBILE',
+      'contact_number', 'contact', 'Contact', 'CONTACT',
+      'tel', 'telephone_number', 'cell', 'cellphone', 'cell_phone'
+    ]
+    
+    // First try exact matches
+    for (const field of phoneFields) {
+      if (user[field] && typeof user[field] === 'string' && user[field].trim()) {
+        return user[field].trim()
+      }
+    }
+    
+    // Then try case-insensitive search through all keys
+    const userKeys = Object.keys(user)
+    for (const key of userKeys) {
+      const lowerKey = key.toLowerCase()
+      if ((lowerKey.includes('phone') || lowerKey.includes('mobile') || lowerKey.includes('contact') || lowerKey.includes('tel')) 
+          && user[key] && typeof user[key] === 'string' && user[key].trim()) {
+        return user[key].trim()
+      }
+    }
+    
+    return ''
   }
   
   // Debug: Log user structure to help identify phone field name
@@ -422,9 +439,15 @@ export default function UserManagement() {
                           {user.full_name || 'Unknown User'}
                         </div>
                         <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
-                        <div className="text-sm text-gray-500">
-                          {getUserPhone(user) || 'No phone'}
+                        <div className="text-sm text-gray-600 font-medium">
+                          📞 {getUserPhone(user) || 'No phone'}
                         </div>
+                        {/* Temporary debug: Show all user fields to identify phone field name */}
+                        {process.env.NODE_ENV === 'development' && !getUserPhone(user) && (
+                          <div className="text-xs text-red-500 mt-1">
+                            Debug: Fields: {Object.keys(user).filter(k => k.toLowerCase().includes('phone') || k.toLowerCase().includes('mobile') || k.toLowerCase().includes('contact')).join(', ') || 'None found'}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
