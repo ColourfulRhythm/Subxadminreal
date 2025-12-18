@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Search, 
   Download, 
@@ -29,19 +29,38 @@ export default function UserManagement() {
   const safeUsers = Array.isArray(users) ? users : []
   const safeInvestments = Array.isArray(investments) ? investments : []
   
+  // Helper function to get phone number from user object (handles various field names)
+  const getUserPhone = (user: any): string => {
+    // Check multiple possible field names
+    return user.phone || 
+           user.phone_number || 
+           user.Phone || 
+           user.phoneNumber ||
+           user.telephone ||
+           user.mobile ||
+           user.mobile_number ||
+           user.contact_number ||
+           user.contact ||
+           ''
+  }
+  
   // Debug: Log user structure to help identify phone field name
-  if (safeUsers.length > 0) {
-    const firstUser = safeUsers[0]
-    if (!firstUser.phone && !(firstUser as any).phone_number && !(firstUser as any).Phone) {
-      console.log('🔍 User Management - Sample user structure:', {
-        id: firstUser.id,
-        fields: Object.keys(firstUser),
-        full_name: firstUser.full_name,
-        email: firstUser.email,
-        allData: firstUser
+  useEffect(() => {
+    if (safeUsers.length > 0) {
+      const firstUser = safeUsers[0] as any
+      const phoneValue = getUserPhone(firstUser)
+      console.log('🔍 User Management - Phone Field Debug:', {
+        userId: firstUser.id,
+        userName: firstUser.full_name,
+        allFields: Object.keys(firstUser),
+        phoneValue: phoneValue,
+        phoneField: firstUser.phone,
+        phone_number: firstUser.phone_number,
+        Phone: firstUser.Phone,
+        sampleUser: firstUser
       })
     }
-  }
+  }, [safeUsers.length])
   
   // Helper function to get user's total investment amount from investments collection
   const getUserTotalInvestment = (userId: string, userEmail: string) => {
@@ -404,7 +423,7 @@ export default function UserManagement() {
                         </div>
                         <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
                         <div className="text-sm text-gray-500">
-                          {user.phone || (user as any).phone_number || (user as any).Phone || 'No phone'}
+                          {getUserPhone(user) || 'No phone'}
                         </div>
                       </div>
                     </div>
