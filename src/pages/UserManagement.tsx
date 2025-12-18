@@ -29,6 +29,20 @@ export default function UserManagement() {
   const safeUsers = Array.isArray(users) ? users : []
   const safeInvestments = Array.isArray(investments) ? investments : []
   
+  // Debug: Log user structure to help identify phone field name
+  if (safeUsers.length > 0) {
+    const firstUser = safeUsers[0]
+    if (!firstUser.phone && !(firstUser as any).phone_number && !(firstUser as any).Phone) {
+      console.log('🔍 User Management - Sample user structure:', {
+        id: firstUser.id,
+        fields: Object.keys(firstUser),
+        full_name: firstUser.full_name,
+        email: firstUser.email,
+        allData: firstUser
+      })
+    }
+  }
+  
   // Helper function to get user's total investment amount from investments collection
   const getUserTotalInvestment = (userId: string, userEmail: string) => {
     return safeInvestments
