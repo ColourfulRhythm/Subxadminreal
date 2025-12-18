@@ -389,7 +389,9 @@ export default function UserManagement() {
                           {user.full_name || 'Unknown User'}
                         </div>
                         <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
-                        <div className="text-sm text-gray-500">{user.phone || 'No phone'}</div>
+                        <div className="text-sm text-gray-500">
+                          {user.phone || (user as any).phone_number || (user as any).Phone || 'No phone'}
+                        </div>
                       </div>
                     </div>
                   </td>
