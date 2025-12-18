@@ -158,7 +158,7 @@ export function exportPlotsToCSV(plots: any[]) {
 /**
  * Export dashboard stats to CSV
  */
-export function exportDashboardStatsToCSV(stats: any, users: any[] = [], plots: any[] = [], projects: any[] = []) {
+export function exportDashboardStatsToCSV(stats: any, users: any[] = [], plots: any[] = []) {
   const headers = ['Metric', 'Value']
   
   const rows = [

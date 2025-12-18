@@ -12,14 +12,13 @@ import {
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts'
 import { RecentActivity } from '../types'
-import { useDashboardStats, useUsers, usePlots, useProjects } from '../hooks/useFirebase'
+import { useDashboardStats, useUsers, usePlots } from '../hooks/useFirebase'
 import { exportDashboardStatsToCSV } from '../utils/csvExport'
 
 export default function Dashboard() {
   const { stats, loading, error } = useDashboardStats()
   const { data: users } = useUsers()
   const { data: plots } = usePlots()
-  const { data: projects } = useProjects()
 
   // Use real Firebase data if available, otherwise fallback to zero values
   const displayStats = stats || {
@@ -62,8 +61,7 @@ export default function Dashboard() {
   const handleExportDashboard = () => {
     const safeUsers = Array.isArray(users) ? users : []
     const safePlots = Array.isArray(plots) ? plots : []
-    const safeProjects = Array.isArray(projects) ? projects : []
-    exportDashboardStatsToCSV(displayStats, safeUsers, safePlots, safeProjects)
+    exportDashboardStatsToCSV(displayStats, safeUsers, safePlots)
   }
 
   const formatCurrency = (amount: number) => {
