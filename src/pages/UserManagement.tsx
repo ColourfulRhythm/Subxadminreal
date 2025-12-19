@@ -360,9 +360,9 @@ export default function UserManagement() {
               />
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <select
-              className="input-field"
+              className="input-field min-w-[140px]"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
             >
@@ -371,7 +371,7 @@ export default function UserManagement() {
               <option value="inactive">Inactive Only</option>
             </select>
             <select
-              className="input-field"
+              className="input-field min-w-[140px]"
               value={filterSignupDate}
               onChange={(e) => setFilterSignupDate(e.target.value as 'all' | 'today' | 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth')}
             >
@@ -383,7 +383,7 @@ export default function UserManagement() {
               <option value="lastMonth">Last Month</option>
             </select>
             <select
-              className="input-field"
+              className="input-field min-w-[160px]"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'latest' | 'oldest' | 'name')}
             >
@@ -439,7 +439,7 @@ export default function UserManagement() {
                           {user.full_name || 'Unknown User'}
                         </div>
                         <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
-                        <div className="text-sm text-gray-600 font-medium">
+                        <div className="text-sm text-gray-600 font-medium mt-1">
                           📞 {getUserPhone(user) || 'No phone'}
                         </div>
                         {/* Temporary debug: Show all user fields to identify phone field name */}
