@@ -134,8 +134,8 @@ export default function PlotManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Plot Management</h1>
-          <p className="text-gray-600">Monitor plot availability, pricing, and ownership</p>
+          <h1 className="text-2xl font-bold text-x-text">Plot Management</h1>
+          <p className="text-white/60">Monitor plot availability, pricing, and ownership</p>
         </div>
         <div className="flex space-x-2">
           <button
@@ -298,7 +298,7 @@ export default function PlotManagement() {
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-white/5">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Plot
@@ -323,13 +323,13 @@ export default function PlotManagement() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-white/10">
               {filteredPlots.map((plot) => (
-                <tr key={plot.id} className="hover:bg-gray-50">
+                <tr key={plot.id} className="hover:bg-white/5">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{plot.name}</div>
-                      <div className="text-sm text-gray-500">{plot.projectName}</div>
+                      <div className="text-sm font-semibold text-x-text">{plot.name}</div>
+                      <div className="text-sm text-white/50">{plot.projectName}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -362,12 +362,12 @@ export default function PlotManagement() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-white/70 hover:text-white"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        className="text-green-600 hover:text-green-900"
+                        className="text-green-300 hover:text-green-200"
                       >
                         <Calculator className="h-4 w-4" />
                       </button>
@@ -392,14 +392,14 @@ export default function PlotManagement() {
 
       {/* Plot Detail Modal */}
       {showPlotModal && selectedPlot && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-black/60 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border border-white/10 w-96 shadow-2xl rounded-2xl bg-x-panel">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Plot Details</h3>
+                <h3 className="text-lg font-semibold text-x-text">Plot Details</h3>
                 <button
                   onClick={() => setShowPlotModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-white/50 hover:text-white/80"
                 >
                   <XCircle className="h-6 w-6" />
                 </button>
@@ -408,11 +408,11 @@ export default function PlotManagement() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Plot Name</label>
-                  <p className="text-sm text-gray-900">{selectedPlot.name}</p>
+                  <p className="text-sm text-x-text">{selectedPlot.name}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Project</label>
-                  <p className="text-sm text-gray-900">{selectedPlot.projectName}</p>
+                  <p className="text-sm text-x-text">{selectedPlot.projectName}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -423,19 +423,19 @@ export default function PlotManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Available SQM</label>
-                  <p className="text-sm text-gray-900">{((selectedPlot as any).available_sqm || selectedPlot.availableSqm || 0).toLocaleString()} / {((selectedPlot as any).total_sqm || selectedPlot.totalSqm || 0).toLocaleString()}</p>
+                  <p className="text-sm text-x-text">{((selectedPlot as any).available_sqm || selectedPlot.availableSqm || 0).toLocaleString()} / {((selectedPlot as any).total_sqm || selectedPlot.totalSqm || 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Price per SQM</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(selectedPlot.pricePerSqm)}</p>
+                  <p className="text-sm text-x-text">{formatCurrency(selectedPlot.pricePerSqm)}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Owners</label>
-                  <p className="text-sm text-gray-900">{selectedPlot.totalOwners}</p>
+                  <p className="text-sm text-x-text">{selectedPlot.totalOwners}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Revenue</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(selectedPlot.totalRevenue)}</p>
+                  <p className="text-sm text-x-text">{formatCurrency(selectedPlot.totalRevenue)}</p>
                 </div>
               </div>
             </div>

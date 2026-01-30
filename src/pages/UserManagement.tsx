@@ -285,8 +285,8 @@ export default function UserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600">Manage platform users and their activities</p>
+          <h1 className="text-2xl font-bold text-x-text">User Management</h1>
+          <p className="text-white/60">Manage platform users and their activities</p>
         </div>
         <button
           onClick={handleExportUsers}
@@ -408,7 +408,7 @@ export default function UserManagement() {
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-white/5">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
@@ -433,22 +433,22 @@ export default function UserManagement() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-transparent divide-y divide-white/10">
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className="hover:bg-white/5">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-700">
+                      <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-white/80">
                           {user.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase() || 'U'}
                         </span>
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-semibold text-x-text">
                           {user.full_name || 'Unknown User'}
                         </div>
-                        <div className="text-sm text-gray-500">{user.email || 'No email'}</div>
-                        <div className="text-sm text-gray-600 font-medium mt-1">
+                        <div className="text-sm text-white/50">{user.email || 'No email'}</div>
+                        <div className="text-sm text-white/60 font-medium mt-1">
                           📞 {getUserPhone(user) || 'No phone'}
                         </div>
                         {/* Temporary debug: Show all user fields to identify phone field name */}
@@ -502,7 +502,7 @@ export default function UserManagement() {
                       </button>
                       <button
                         onClick={() => handleUserAction(user.id, 'edit')}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="text-white/70 hover:text-white"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -534,13 +534,13 @@ export default function UserManagement() {
       {/* User Detail Modal */}
       {showUserModal && selectedUser && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border border-white/10 w-96 shadow-2xl rounded-2xl bg-x-panel">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">User Details</h3>
+                <h3 className="text-lg font-semibold text-x-text">User Details</h3>
                 <button
                   onClick={() => setShowUserModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-white/50 hover:text-white/80"
                 >
                   <XCircle className="h-6 w-6" />
                 </button>
@@ -548,30 +548,30 @@ export default function UserManagement() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <p className="text-sm text-gray-900">
+                  <label className="block text-sm font-medium text-white/50">Name</label>
+                  <p className="text-sm text-x-text">
                     {selectedUser.full_name || `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'Unknown'}
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="text-sm text-gray-900">{selectedUser.email}</p>
+                  <label className="block text-sm font-medium text-white/50">Email</label>
+                  <p className="text-sm text-x-text">{selectedUser.email}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <p className="text-sm text-gray-900">{getUserPhone(selectedUser as any) || selectedUser.phone || 'Not provided'}</p>
+                  <label className="block text-sm font-medium text-white/50">Phone</label>
+                  <p className="text-sm text-x-text">{getUserPhone(selectedUser as any) || selectedUser.phone || 'Not provided'}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Investment</label>
-                  <p className="text-sm text-gray-900">{formatCurrency(getUserTotalInvestment(selectedUser.id, selectedUser.email || ''))}</p>
+                  <label className="block text-sm font-medium text-white/50">Total Investment</label>
+                  <p className="text-sm text-x-text">{formatCurrency(getUserTotalInvestment(selectedUser.id, selectedUser.email || ''))}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Portfolio</label>
-                  <p className="text-sm text-gray-900">{getUserPortfolioSqm(selectedUser.id, selectedUser.email || '').toLocaleString()} SQM</p>
+                  <label className="block text-sm font-medium text-white/50">Portfolio</label>
+                  <p className="text-sm text-x-text">{getUserPortfolioSqm(selectedUser.id, selectedUser.email || '').toLocaleString()} SQM</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Referral Code</label>
-                  <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
+                  <label className="block text-sm font-medium text-white/50">Referral Code</label>
+                  <p className="text-sm text-x-text">{selectedUser.referral_code || 'N/A'}</p>
                 </div>
               </div>
             </div>

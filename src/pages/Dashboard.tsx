@@ -96,8 +96,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="text-gray-600">Real-time platform statistics and system monitoring</p>
+          <h1 className="text-2xl font-bold text-x-text">Dashboard Overview</h1>
+          <p className="text-white/60">Real-time platform statistics and system monitoring</p>
           {stats && (
             <p className="text-sm text-green-600 mt-1">
               🔗 Connected to Firebase - Live data from subx-825e9
@@ -307,19 +307,19 @@ export default function Dashboard() {
 
       {/* Recent Activity */}
       <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <h3 className="text-lg font-semibold text-x-text mb-4">Recent Activity</h3>
         <div className="space-y-4">
           {recentActivity.map((activity) => (
-            <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+            <div key={activity.id} className="flex items-start space-x-3 p-3 bg-white/5 border border-white/10 rounded-xl">
               {getActivityIcon(activity.type)}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900">{activity.description}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-x-text">{activity.description}</p>
+                <p className="text-xs text-white/50">
                   {activity.timestamp.toLocaleString()}
                 </p>
               </div>
               {activity.amount && (
-                <div className="text-sm font-medium text-gray-900">
+                <div className="text-sm font-medium text-x-text">
                   {formatCurrency(activity.amount)}
                 </div>
               )}
