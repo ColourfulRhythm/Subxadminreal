@@ -151,11 +151,18 @@ export class LandingPageService {
       const originalPage = await this.getLandingPage(id)
       if (!originalPage) throw new Error('Original page not found')
 
+      const trimmedName = (name || '').trim()
+      const safeName = trimmedName || `${originalPage.name} (Copy)`
+      const safeSlugBase = safeName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+
       const duplicatePage: LandingPage = {
         ...originalPage,
         id: undefined, // New ID will be generated
-        name: `${originalPage.name} (Copy)`,
-        slug: `${originalPage.slug}-copy`,
+        name: safeName,
+        slug: `${safeSlugBase || originalPage.slug}-copy`,
         status: 'draft',
         createdAt: undefined,
         updatedAt: undefined

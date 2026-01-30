@@ -7,9 +7,8 @@ import {
   limit,
   startAfter,
   getDocs,
-  QueryLimitConstraint,
+  QueryConstraint,
   QueryOrderByConstraint,
-  QueryWhereConstraint,
   DocumentSnapshot,
   Unsubscribe,
   onSnapshot
@@ -20,7 +19,7 @@ interface OptimizedQueryOptions {
   pageSize?: number
   filters?: Record<string, any>
   orderBy?: QueryOrderByConstraint
-  whereClauses?: QueryWhereConstraint[]
+  whereClauses?: QueryConstraint[]
   includeLoadingStates?: boolean
 }
 
@@ -45,7 +44,7 @@ export function useOptimizedFirebase<T>(
   const [totalCount, setTotalCount] = useState(0)
 
   const buildQuery = useCallback((startAfterDoc?: DocumentSnapshot) => {
-    let constraints = []
+    const constraints: QueryConstraint[] = []
     
     // Add where clauses
     whereClauses.forEach(clause => {
@@ -109,7 +108,7 @@ export function useOptimizedFirebase<T>(
 
   const loadMore = useCallback(() => {
     if (!hasMore) return
-    fetchPage(lastDoc)
+    fetchPage(lastDoc ?? undefined)
   }, [hasMore, lastDoc, fetchPage])
 
   const refresh = useCallback(() => {
@@ -265,7 +264,6 @@ export function useBatchOperations() {
 
 // Hook for search with debouncing to prevent excessive queries
 export function useOptimizedSearch<T>(
-  collectionName: string,
   searchFunction: (query: string) => Promise<T[]>,
   delay: number = 500
 ) {

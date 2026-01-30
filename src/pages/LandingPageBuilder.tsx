@@ -1,29 +1,24 @@
-import React, { useState, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { 
   Plus, 
   Save, 
   Eye, 
   Download, 
-  Upload, 
-  Copy, 
   Trash2, 
   Move, 
   Settings,
   Type,
   Image as ImageIcon,
-  Video,
   Layout,
   Palette,
   Smartphone,
   Monitor,
-  Globe,
   Zap,
   FileText,
   MousePointer,
   Layers,
-  AlignLeft,
-  DownloadCloud,
-  ArrowLeft
+  ArrowLeft,
+  type LucideIcon
 } from 'lucide-react'
 
 interface Block {
@@ -32,6 +27,8 @@ interface Block {
   props: Record<string, any>
   position: number
 }
+
+type BlockType = Block['type']
 
 interface LandingPage {
   id?: string
@@ -149,7 +146,12 @@ const LANDING_PAGE_TEMPLATES = [
       }}
     ]
   }
-]
+] satisfies Array<{
+  name: string
+  preview: string
+  description: string
+  blocks: Array<{ type: BlockType; props: Record<string, any> }>
+}>
 
 const BLOCK_TYPES = [
   { type: 'hero', icon: Layout, label: 'Hero Section' },
@@ -160,17 +162,15 @@ const BLOCK_TYPES = [
   { type: 'pricing', icon: Layers, label: 'Pricing Table' },
   { type: 'contact', icon: MousePointer, label: 'Contact Form' },
   { type: 'gallery', icon: ImageIcon, label: 'Image Gallery' }
-]
+] satisfies Array<{ type: BlockType; icon: LucideIcon; label: string }>
 
 export default function LandingPageBuilder() {
   const [selectedPage, setSelectedPage] = useState<LandingPage | null>(null)
   const [pages, setPages] = useState<LandingPage[]>([])
-  const [loading, setLoading] = useState(true)
   const [showTemplateModal, setShowTemplateModal] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showDesignPanel, setShowDesignPanel] = useState(false)
   const [selectedBlock, setSelectedBlock] = useState<string | null>(null)
-  const [dragStart, setDragStart] = useState<{ type: string } | null>(null)
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
   const blockCounterRef = useRef(0)
@@ -768,6 +768,26 @@ export default function LandingPageBuilder() {
                 Start from Scratch
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Design Panel Modal (minimal implementation to avoid dead UI button) */}
+      {showDesignPanel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Theme Settings</h3>
+              <button
+                onClick={() => setShowDesignPanel(false)}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+              >
+                Close
+              </button>
+            </div>
+            <p className="text-sm text-gray-600">
+              Theme customization is wired for future expansion. (This modal keeps the “Design” button functional and prevents runtime dead-ends.)
+            </p>
           </div>
         </div>
       )}

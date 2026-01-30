@@ -28,6 +28,15 @@ export default function UserManagement() {
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
   const safeInvestments = Array.isArray(investments) ? investments : []
+
+  // Normalize status across inconsistent Firestore/user schema variants.
+  const getUserStatus = (user: any): 'active' | 'inactive' | 'unknown' => {
+    const raw = (user?.status ?? user?.Status ?? user?.account_status ?? user?.accountStatus ?? '').toString().toLowerCase().trim()
+    if (raw === 'active') return 'active'
+    if (raw === 'inactive' || raw === 'disabled' || raw === 'banned' || raw === 'blocked') return 'inactive'
+    if (typeof user?.isActive === 'boolean') return user.isActive ? 'active' : 'inactive'
+    return 'unknown'
+  }
   
   // Helper function to get phone number from user object (handles various field names)
   const getUserPhone = (user: any): string => {
@@ -130,8 +139,8 @@ export default function UserManagement() {
       const matchesSearch = (userEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (fullName || '').toLowerCase().includes(searchTerm.toLowerCase())
       
-      // Use status field from user_profiles
-      const isActive = user.status === 'active'
+      // Use normalized status field from user_profiles (and compatibility fallbacks)
+      const isActive = getUserStatus(user) === 'active'
       const matchesFilter = filterStatus === 'all' || 
                            (filterStatus === 'active' && isActive) ||
                            (filterStatus === 'inactive' && !isActive)
@@ -452,15 +461,21 @@ export default function UserManagement() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : user.status === 'inactive'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.status || 'N/A'}
-                    </span>
+                    {(() => {
+                      const status = getUserStatus(user)
+                      const label = status === 'unknown' ? (user.status || 'unknown') : status
+                      const color =
+                        status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : status === 'inactive'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      return (
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${color}`}>
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(getUserTotalInvestment(user.id, user.email || ''))}
@@ -492,10 +507,10 @@ export default function UserManagement() {
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleUserAction(user.id, user.isActive ? 'deactivate' : 'activate')}
-                        className={user.isActive ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"}
+                        onClick={() => handleUserAction(user.id, getUserStatus(user) === 'active' ? 'deactivate' : 'activate')}
+                        className={getUserStatus(user) === 'active' ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"}
                       >
-                        {user.isActive ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        {getUserStatus(user) === 'active' ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                       </button>
                     </div>
                   </td>
@@ -534,7 +549,9 @@ export default function UserManagement() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <p className="text-sm text-gray-900">{selectedUser.firstName} {selectedUser.lastName}</p>
+                  <p className="text-sm text-gray-900">
+                    {selectedUser.full_name || `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'Unknown'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -542,7 +559,7 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <p className="text-sm text-gray-900">{selectedUser.phone || 'Not provided'}</p>
+                  <p className="text-sm text-gray-900">{getUserPhone(selectedUser as any) || selectedUser.phone || 'Not provided'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Investment</label>
@@ -554,7 +571,7 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referral Code</label>
-                  <p className="text-sm text-gray-900">{selectedUser.referral_code}</p>
+                  <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
                 </div>
               </div>
             </div>

@@ -24,7 +24,6 @@ import DocumentVerification from '../components/DocumentVerification'
 import { FileManagementService } from '../services/fileManagement'
 import BulkActions from '../components/BulkActions'
 import { QueueManagementService } from '../services/queueManagement'
-import { useOptimizedFirebase, useBatchOperations } from '../hooks/useOptimizedFirebase'
 
 export default function InvestmentRequests() {
   console.log('🚀🚀🚀 INVESTMENT REQUESTS COMPONENT LOADED - NEW VERSION RUNNING!')
@@ -38,9 +37,6 @@ export default function InvestmentRequests() {
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [firebaseStatus, setFirebaseStatus] = useState<'connected' | 'disconnected' | 'error'>('connected')
   const [autoQueueEnabled, setAutoQueueEnabled] = useState(false)
-  const [batchOperationResults, setBatchOperationResults] = useState<any>(null)
-  
-  const { processBatch } = useBatchOperations()
 
   // Always use real Firebase data
   const displayRequests = firebaseRequests

@@ -1,7 +1,6 @@
 import { 
   collection, 
   doc, 
-  updateDoc, 
   getDocs, 
   writeBatch, 
   query,
@@ -210,7 +209,7 @@ export class BulkOperationsService {
   }
 
   // Process investment requests by status (high volume processing)
-  static async processRequestsByStatus(status: string, newStatus: string, adminId: string, limit: number = 50): Promise<BulkOperationResult> {
+  static async processRequestsByStatus(status: string, newStatus: string, adminId: string, maxToProcess: number = 50): Promise<BulkOperationResult> {
     const batch = writeBatch(db)
     const errors: string[] = []
     let processed = 0
@@ -222,7 +221,7 @@ export class BulkOperationsService {
         collection(db, 'investment_requests'),
         where('status', '==', status),
         orderBy('createdAt', 'asc'),
-        limit(limit)
+        limit(maxToProcess)
       )
 
       const requestsSnapshot = await getDocs(requestsQuery)
@@ -269,7 +268,7 @@ export class BulkOperationsService {
   }
 
   // Queue management - get high priority requests first
-  static async getHighPriorityRequests(limit: number = 20) {
+  static async getHighPriorityRequests(maxRequests: number = 20) {
     try {
       const queries = [
         // Recent high-value requests
@@ -278,7 +277,7 @@ export class BulkOperationsService {
           where('status', '==', 'pending'),
           where('amount_paid', '>=', 50000), // High value
           orderBy('amount_paid', 'desc'),
-          limit(Math.ceil(limit / 2))
+          limit(Math.ceil(maxRequests / 2))
         ),
         // Recent requests with referrals
         query(
@@ -286,7 +285,7 @@ export class BulkOperationsService {
           where('status', '==', 'pending'),
           where('referral_code', '!=', null),
           orderBy('createdAt', 'desc'),
-          limit(Math.ceil(limit / 2))
+          limit(Math.ceil(maxRequests / 2))
         )
       ]
 
@@ -295,7 +294,7 @@ export class BulkOperationsService {
       )
 
       // Combine and deduplicate
-      const requests = []
+      const requests: any[] = []
       const requestIds = new Set()
 
       ;[...highValueSnapshot.docs, ...referralSnapshot.docs].forEach(doc => {
@@ -305,7 +304,7 @@ export class BulkOperationsService {
         }
       })
 
-      return requests.slice(0, limit)
+      return requests.slice(0, maxRequests)
     } catch (error) {
       console.error('Error getting high priority requests:', error)
       return []

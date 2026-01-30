@@ -29,12 +29,17 @@ export default function PlotManagement() {
   const [showPlotModal, setShowPlotModal] = useState(false)
   const [isRecalculating, setIsRecalculating] = useState(false)
 
-  const filteredPlots = plots.filter(plot => {
-    const matchesSearch = plot.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plot.projectName.toLowerCase().includes(searchTerm.toLowerCase())
+  // Firestore data can be inconsistent (missing fields / different casing). Keep filtering crash-proof.
+  const filteredPlots = plots.filter((plot: any) => {
+    const plotName = String(plot?.name ?? '')
+    const projectName = String(plot?.projectName ?? plot?.project_name ?? '')
+
+    const matchesSearch =
+      plotName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      projectName.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesStatus = filterStatus === 'all' || plot.status === filterStatus
-    const matchesProject = filterProject === 'all' || plot.projectId === filterProject
+    const matchesStatus = filterStatus === 'all' || plot?.status === filterStatus
+    const matchesProject = filterProject === 'all' || plot?.projectId === filterProject
     
     return matchesSearch && matchesStatus && matchesProject
   })
@@ -97,8 +102,8 @@ export default function PlotManagement() {
   ]
 
   const revenueChartData = plots.map(plot => ({
-    name: plot.name,
-    revenue: plot.totalRevenue
+    name: (plot as any)?.name || 'Unnamed',
+    revenue: Number((plot as any)?.totalRevenue ?? 0)
   }))
 
   if (loading) {

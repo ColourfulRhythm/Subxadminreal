@@ -27,6 +27,27 @@ export default function ReferralAnalytics() {
   const safeReferrals = Array.isArray(referrals) ? referrals : []
   const safeWithdrawalRequests = Array.isArray(withdrawalRequests) ? withdrawalRequests : []
 
+  // Firestore commonly returns Timestamp objects; normalize to JS Date to avoid tab-crashing runtime errors.
+  const toDateSafe = (value: any): Date | null => {
+    if (!value) return null
+    if (value instanceof Date) return value
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+      try {
+        return value.toDate()
+      } catch {
+        return null
+      }
+    }
+    const parsed = new Date(value)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
+
+  const getCommissionAmount = (referral: any): number => {
+    const amount = referral?.commission_amount ?? referral?.commission ?? 0
+    const n = Number(amount)
+    return Number.isFinite(n) ? n : 0
+  }
+
   // Combined data analysis - referrals and withdrawals
   const filteredReferrals = safeReferrals.filter(referral => {
     const matchesSearch = ((referral as any).referred_by || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,7 +65,7 @@ export default function ReferralAnalytics() {
   // Process referrals collection data
   safeReferrals.forEach(referral => {
     const referrerId = referral.referrerId
-    const amount = referral.commission_amount || referral.commission || 0
+    const amount = getCommissionAmount(referral)
     const email = (referral as any).referred_by
     
     allReferralUsers.add(referrerId)
@@ -83,7 +104,7 @@ export default function ReferralAnalytics() {
         withdrawnAmount: 0
       }
       
-      currentData.withdrawnAmount += withdrawal.amount
+      currentData.withdrawnAmount += Number(withdrawal.amount || 0)
       referralCommissions.set(referrerId, currentData)
     }
   })
@@ -117,8 +138,9 @@ export default function ReferralAnalytics() {
   }
 
   const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A'
-    return date.toLocaleDateString('en-US', {
+    const safe = toDateSafe(date) ?? toDateSafe(date as any)
+    if (!safe) return 'N/A'
+    return safe.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -139,16 +161,16 @@ export default function ReferralAnalytics() {
   // Withdrawal requests are now shown in the analysis section below
 
   const monthlyData = safeReferrals.reduce((acc, referral) => {
-    const month = (referral.createdAt || new Date()).toISOString().slice(0, 7)
+    const month = (toDateSafe((referral as any).createdAt) ?? new Date()).toISOString().slice(0, 7)
     const existing = acc.find(item => item.month === month)
     if (existing) {
       existing.referrals++
-      existing.commission += referral.commission_amount || referral.commission
+      existing.commission += getCommissionAmount(referral)
     } else {
       acc.push({
         month,
         referrals: 1,
-        commission: referral.commission_amount || referral.commission
+        commission: getCommissionAmount(referral)
       })
     }
     return acc
@@ -237,7 +259,7 @@ export default function ReferralAnalytics() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Commission</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(safeReferrals.reduce((sum, r) => sum + (r.commission_amount || r.commission), 0))}
+                {formatCurrency(safeReferrals.reduce((sum, r) => sum + getCommissionAmount(r), 0))}
               </p>
             </div>
           </div>

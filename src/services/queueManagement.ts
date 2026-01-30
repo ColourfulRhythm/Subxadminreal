@@ -49,14 +49,14 @@ export class QueueManagementService {
   }
 
   // Get next items from queue (prioritizing high priority)
-  static async getQueueItems(limit: number = 20): Promise<QueueItem[]> {
+  static async getQueueItems(maxItems: number = 20): Promise<QueueItem[]> {
     try {
       const queueQuery = query(
         collection(db, 'admin_queue'),
         where('status', '==', 'pending'),
         orderBy('priority', 'desc'), // High priority first
         orderBy('createdAt', 'asc'),   // Then by request time
-        limit(limit)
+        limit(maxItems)
       )
 
       const queueSnapshot = await getDocs(queueQuery)
@@ -219,14 +219,14 @@ export class QueueManagementService {
     switch (item.type) {
       case 'investment':
         // This would typically call your existing approval logic
-        console.log('Processing investment request:', item.metadata)
+        console.log('Processing investment request:', { adminId, metadata: item.metadata })
         break
       case 'verification':
         // Process user verification
-        console.log('Processing verification:', item.metadata)
+        console.log('Processing verification:', { adminId, metadata: item.metadata })
         break
       default:
-        console.log('Processing item:', item.type)
+        console.log('Processing item:', { adminId, type: item.type })
     }
   }
 
@@ -254,8 +254,15 @@ export class QueueManagementService {
 
       snapshot.docs.forEach(doc => {
         const data = doc.data()
-        stats[data.status]++
-        stats.byPriority[data.priority]++
+        const status: unknown = data.status
+        if (status === 'pending' || status === 'processing' || status === 'completed' || status === 'failed') {
+          stats[status] += 1
+        }
+
+        const priority: unknown = data.priority
+        if (priority === 'high' || priority === 'medium' || priority === 'low') {
+          stats.byPriority[priority] += 1
+        }
       })
 
       return stats
