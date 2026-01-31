@@ -8,13 +8,12 @@ export default {
     extend: {
       colors: {
         primary: {
-          // X-like blue
-          50: '#e8f5fd',
-          100: '#d1ebfb',
-          500: '#1d9bf0',
-          600: '#1a8cd8',
-          700: '#1677b6',
-          900: '#0a334d',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          900: '#1e3a8a',
         },
         success: {
           50: '#f0fdf4',
@@ -36,16 +35,7 @@ export default {
           500: '#ef4444',
           600: '#dc2626',
           700: '#b91c1c',
-        },
-        // X-like neutrals for dark admin surfaces
-        x: {
-          bg: '#0b0f14',
-          panel: '#0f141b',
-          panel2: '#121823',
-          border: 'rgba(255,255,255,0.10)',
-          text: '#e7e9ea',
-          muted: 'rgba(231,233,234,0.72)',
-        },
+        }
       }
     },
   },

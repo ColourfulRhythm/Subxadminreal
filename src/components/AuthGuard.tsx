@@ -20,6 +20,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return () => unsubscribe()
   }, [])
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -42,6 +50,40 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return <LoginForm />
   }
 
-  // Layout handles the application chrome (sidebar/topbar). AuthGuard only gates access.
-  return <>{children}</>
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Desktop top bar with user info and logout */}
+      <div className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
+        <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center">
+            <h1 className="text-xl font-bold text-gray-900">Subx Admin Dashboard</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-sm font-medium text-blue-600">
+                  {user.email?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                <p className="text-xs text-gray-500">Admin</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Main content */}
+      <div className="lg:pt-0">
+        {children}
+      </div>
+    </div>
+  )
 }

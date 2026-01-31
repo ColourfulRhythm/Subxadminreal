@@ -202,148 +202,167 @@ export default function ReferralAnalytics() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-x-text">Referral Analytics</h1>
-          <p className="text-white/60">Track referral performance and commission payouts</p>
+          <h1 className="page-title">Referral Analytics</h1>
+          <p className="page-subtitle">Track referral performance and commission payouts</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex gap-2">
           <button
             onClick={handleExportReferrals}
-            className="btn-secondary flex items-center space-x-2"
+            className="btn-secondary flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            <span>Export CSV</span>
+            <span className="hidden sm:inline">Export</span>
           </button>
-          <button className="btn-primary flex items-center space-x-2">
+          <button className="btn-primary flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            <span>Add Referral</span>
+            <span className="hidden sm:inline">Add Referral</span>
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Users2 className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-white/60">Total Referrals</p>
-              <p className="text-2xl font-bold text-x-text">{safeReferrals.length}</p>
-              <p className="text-xs text-white/40">From referrals collection</p>
-            </div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon bg-blue-50">
+            <Users2 className="h-6 w-6 text-blue-600" />
+          </div>
+          <div>
+            <p className="stat-label">Total Referrals</p>
+            <p className="stat-value">{safeReferrals.length}</p>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-white/60">Paid Referrals</p>
-              <p className="text-2xl font-bold text-x-text">
-                {safeReferrals.filter(r => r.status === 'paid').length}
-              </p>
-            </div>
+        <div className="stat-card">
+          <div className="stat-icon bg-emerald-50">
+            <CheckCircle className="h-6 w-6 text-emerald-600" />
+          </div>
+          <div>
+            <p className="stat-label">Paid Referrals</p>
+            <p className="stat-value">
+              {safeReferrals.filter(r => r.status === 'paid').length}
+            </p>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-white/60">Total Commission</p>
-              <p className="text-2xl font-bold text-x-text">
-                {formatCurrency(safeReferrals.reduce((sum, r) => sum + getCommissionAmount(r), 0))}
-              </p>
-            </div>
+        <div className="stat-card">
+          <div className="stat-icon bg-violet-50">
+            <DollarSign className="h-6 w-6 text-violet-600" />
+          </div>
+          <div>
+            <p className="stat-label">Total Commission</p>
+            <p className="stat-value text-xl">
+              {formatCurrency(safeReferrals.reduce((sum, r) => sum + getCommissionAmount(r), 0))}
+            </p>
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-white/60">Active Referrers</p>
-              <p className="text-2xl font-bold text-x-text">
-                {new Set(safeReferrals.map(r => r.referrerId)).size}
-              </p>
-            </div>
+        <div className="stat-card">
+          <div className="stat-icon bg-amber-50">
+            <TrendingUp className="h-6 w-6 text-amber-600" />
+          </div>
+          <div>
+            <p className="stat-label">Active Referrers</p>
+            <p className="stat-value">
+              {new Set(safeReferrals.map(r => r.referrerId)).size}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Withdrawal Requests Analysis */}
-      <div className="bg-primary-600/10 border border-primary-600/20 rounded-2xl p-4 mb-6">
-        <h3 className="text-lg font-semibold text-primary-100 mb-4">Withdrawal Requests Analysis</h3>
+      <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+        <h3 className="chart-title text-blue-900">Withdrawal Requests Analysis</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-x-panel/80 border border-white/10 rounded-2xl p-4">
-            <p className="text-sm font-medium text-white/60">Total Withdrawal Requests</p>
-            <p className="text-2xl font-bold text-x-text">{safeWithdrawalRequests.length}</p>
-            <p className="text-xs text-white/40">From withdrawalRequests collection</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-sm font-medium text-gray-500">Total Requests</p>
+            <p className="text-2xl font-semibold text-gray-900 mt-1">{safeWithdrawalRequests.length}</p>
           </div>
-          <div className="bg-x-panel/80 border border-white/10 rounded-2xl p-4">
-            <p className="text-sm font-medium text-white/60">Referral Withdrawals</p>
-            <p className="text-2xl font-bold text-green-200">
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-sm font-medium text-gray-500">Referral Withdrawals</p>
+            <p className="text-2xl font-semibold text-emerald-600 mt-1">
               {safeWithdrawalRequests.filter(w => w.type === 'referral').length}
             </p>
-            <p className="text-xs text-white/40">Type = 'referral'</p>
           </div>
-          <div className="bg-x-panel/80 border border-white/10 rounded-2xl p-4">
-            <p className="text-sm font-medium text-white/60">Referral Withdrawal Amount</p>
-            <p className="text-2xl font-bold text-purple-200">
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <p className="text-sm font-medium text-gray-500">Amount Withdrawn</p>
+            <p className="text-2xl font-semibold text-violet-600 mt-1">
               {formatCurrency(
                 safeWithdrawalRequests
                   .filter(w => w.type === 'referral')
                   .reduce((sum, w) => sum + w.amount, 0)
               )}
             </p>
-            <p className="text-xs text-white/40">Total withdrawn from referrals</p>
           </div>
         </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="charts-grid">
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Referral Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <h3 className="chart-title">Referral Status</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={statusChartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
+                innerRadius={50}
+                outerRadius={100}
+                paddingAngle={3}
                 dataKey="value"
               >
                 {statusChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
+          <div className="flex justify-center gap-4 mt-2">
+            {statusChartData.map((item, index) => (
+              <div key={index} className="flex items-center gap-1.5 text-xs">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></span>
+                <span className="text-gray-600">{item.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <h3 className="chart-title">Monthly Trends</h3>
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} />
-              <Line type="monotone" dataKey="commission" stroke="#10B981" strokeWidth={2} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="month" 
+                axisLine={false} 
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false}
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'white', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '8px',
+                  fontSize: '12px'
+                }}
+              />
+              <Line type="monotone" dataKey="referrals" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6', r: 4 }} name="Referrals" />
+              <Line type="monotone" dataKey="commission" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981', r: 4 }} name="Commission" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -352,27 +371,34 @@ export default function ReferralAnalytics() {
       {/* Top Referrers */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-x-text">Top Referrers</h3>
-          <Award className="h-5 w-5 text-yellow-500" />
+          <h3 className="chart-title mb-0">Top Referrers</h3>
+          <Award className="h-5 w-5 text-amber-500" />
         </div>
-        <div className="space-y-4">
-          {topReferrers.map((referrer, index) => (
-            <div key={referrer.id} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold">
-                  {index + 1}
-                </div>
-                <div>
-                  <p className="font-semibold text-x-text">{referrer.email}</p>
-                  <p className="text-sm text-white/50">{referrer.totalReferrals} referrals</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-x-text">{formatCurrency(referrer.totalCommission)}</p>
-                <p className="text-sm text-white/50">{referrer.conversionRate}% conversion</p>
-              </div>
+        <div className="space-y-3">
+          {topReferrers.length === 0 ? (
+            <div className="text-center py-8">
+              <Users2 className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No referrers data available</p>
             </div>
-          ))}
+          ) : (
+            topReferrers.map((referrer, index) => (
+              <div key={referrer.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{referrer.email}</p>
+                    <p className="text-xs text-gray-500">{referrer.totalReferrals} referrals</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900">{formatCurrency(referrer.totalCommission)}</p>
+                  <p className="text-xs text-gray-500">{referrer.conversionRate.toFixed(0)}% conversion</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -410,7 +436,7 @@ export default function ReferralAnalytics() {
       <div className="card">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-white/5">
+            <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Referrer
@@ -435,14 +461,14 @@ export default function ReferralAnalytics() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-transparent divide-y divide-white/10">
+            <tbody className="bg-white divide-y divide-gray-200">
               {filteredReferrals.map((referral) => (
-                <tr key={referral.id} className="hover:bg-white/5">
+                <tr key={referral.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-x-text">{(referral as any).referred_by || 'N/A'}</div>
+                    <div className="text-sm font-medium text-gray-900">{(referral as any).referred_by || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-x-text">{(referral as any).full_name || 'N/A'}</div>
+                    <div className="text-sm font-medium text-gray-900">{(referral as any).full_name || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(referral.commission_amount || referral.commission)}
@@ -504,14 +530,14 @@ export default function ReferralAnalytics() {
 
       {/* Referrer Detail Modal */}
       {showReferrerModal && selectedReferrer && (
-        <div className="fixed inset-0 bg-black/60 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border border-white/10 w-96 shadow-2xl rounded-2xl bg-x-panel">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-x-text">Referral Details</h3>
+                <h3 className="text-lg font-medium text-gray-900">Referral Details</h3>
                 <button
                   onClick={() => setShowReferrerModal(false)}
-                  className="text-white/50 hover:text-white/80"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <XCircle className="h-6 w-6" />
                 </button>

@@ -16,7 +16,8 @@ import {
   LogOut,
   Settings,
   Database,
-  Menu
+  Menu,
+  ChevronRight
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -24,15 +25,15 @@ interface LayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard Overview', href: '/', icon: LayoutDashboard },
-  { name: 'User Management', href: '/users', icon: Users },
-  { name: 'Project Management', href: '/projects', icon: Building2 },
-  { name: 'Plot Management', href: '/plots', icon: MapPin },
-  { name: 'Investment Requests', href: '/investments', icon: TrendingUp },
-  { name: 'Withdrawal Management', href: '/withdrawals', icon: DollarSign },
-  { name: 'Referral Analytics', href: '/referrals', icon: Users2 },
-  { name: 'Pricing Management', href: '/pricing', icon: PricingIcon },
-  { name: 'Landing Page Builder', href: '/landing-pages', icon: PageBuilderIcon },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Users', href: '/users', icon: Users },
+  { name: 'Projects', href: '/projects', icon: Building2 },
+  { name: 'Plots', href: '/plots', icon: MapPin },
+  { name: 'Investments', href: '/investments', icon: TrendingUp },
+  { name: 'Withdrawals', href: '/withdrawals', icon: DollarSign },
+  { name: 'Referrals', href: '/referrals', icon: Users2 },
+  { name: 'Pricing', href: '/pricing', icon: PricingIcon },
+  { name: 'Landing Pages', href: '/landing-pages', icon: PageBuilderIcon },
   { name: 'Firebase Test', href: '/firebase-test', icon: Database },
 ]
 
@@ -57,54 +58,38 @@ export default function Layout({ children }: LayoutProps) {
     }
   }
 
-  const getInitials = (email?: string | null) => (email?.charAt(0).toUpperCase() || 'A')
-
   return (
-    <div className="min-h-screen bg-x-bg text-x-text">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-x-panel/95 backdrop-blur border-b border-white/10">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200">
         <div className="flex h-14 items-center justify-between px-4">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-600/40 rounded-lg p-2 -ml-2"
+            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Open sidebar"
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-primary-600/15 border border-primary-600/25 flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-100">S</span>
-            </div>
-            <h1 className="text-sm font-semibold tracking-wide">SUBX ADMIN</h1>
-          </div>
-          <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <span className="text-sm font-semibold">{getInitials(user?.email)}</span>
-          </div>
+          <h1 className="text-base font-semibold text-gray-900">Subx Admin</h1>
+          <div className="w-9"></div>
         </div>
       </div>
 
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-x-panel border-r border-white/10 shadow-2xl">
-          <div className="flex h-14 items-center justify-between px-4 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-primary-600/15 border border-primary-600/25 flex items-center justify-center">
-                <span className="text-sm font-bold text-primary-100">S</span>
-              </div>
-              <div>
-                <p className="text-xs text-white/50 leading-none">Admin</p>
-                <p className="text-sm font-semibold leading-none">Subx Console</p>
-              </div>
-            </div>
+      {/* Mobile sidebar overlay */}
+      <div className={`fixed inset-0 z-50 lg:hidden transition-opacity duration-200 ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+        <div className={`fixed inset-y-0 left-0 w-72 bg-white shadow-xl transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex h-14 items-center justify-between px-4 border-b border-gray-100">
+            <h1 className="text-lg font-semibold text-gray-900">Subx Admin</h1>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-white/70 hover:text-white"
+              className="p-2 -mr-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
-          <nav className="flex-1 px-3 py-3 space-y-1">
+          
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.href
@@ -112,62 +97,60 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors border ${
+                  className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
                     isActive
-                      ? 'bg-primary-600/15 text-primary-100 border-primary-600/25'
-                      : 'text-white/80 hover:bg-white/5 border-transparent'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-primary-200' : 'text-white/60 group-hover:text-white/80'}`} />
-                  {item.name}
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span className="flex-1">{item.name}</span>
+                  {isActive && <ChevronRight className="h-4 w-4 text-blue-400" />}
                 </Link>
               )
             })}
           </nav>
-          <div className="border-t border-white/10 p-4 space-y-3">
-            {/* User info */}
+          
+          <div className="border-t border-gray-100 p-4">
             {user && (
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold">{getInitials(user.email)}</span>
+              <div className="flex items-center gap-3 mb-4 px-2">
+                <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-blue-600">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{user.email}</p>
-                  <p className="text-xs text-white/50">Administrator</p>
+                  <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-500">Administrator</p>
                 </div>
               </div>
             )}
-            <button className="flex items-center w-full px-3 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/5 rounded-xl transition-colors">
-              <Settings className="mr-3 h-5 w-5 text-white/60" />
-              Settings
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2.5 text-sm font-semibold text-red-300 hover:bg-danger-600/10 rounded-xl transition-colors border border-danger-600/20"
-            >
-              <LogOut className="mr-3 h-5 w-5" />
-              Logout
-            </button>
+            <div className="space-y-1">
+              <button className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors">
+                <Settings className="h-5 w-5 text-gray-400" />
+                Settings
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-x-panel border-r border-white/10">
-          <div className="flex h-16 items-center px-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-primary-600/15 border border-primary-600/25 flex items-center justify-center">
-                <span className="text-sm font-bold text-primary-100">S</span>
-              </div>
-              <div className="leading-tight">
-                <p className="text-[11px] text-white/50 tracking-wide">ADMIN</p>
-                <p className="text-sm font-semibold">Subx Console</p>
-              </div>
-            </div>
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-60 lg:flex-col">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
+          <div className="flex h-14 items-center px-5 border-b border-gray-100">
+            <h1 className="text-lg font-semibold text-gray-900">Subx Admin</h1>
           </div>
-          <nav className="flex-1 px-3 py-4 space-y-1">
+          
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const Icon = item.icon
               const isActive = location.pathname === item.href
@@ -175,39 +158,38 @@ export default function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`group flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-xl transition-colors border ${
+                  className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                     isActive
-                      ? 'bg-primary-600/15 text-primary-100 border-primary-600/25'
-                      : 'text-white/80 hover:bg-white/5 border-transparent'
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-primary-200' : 'text-white/60 group-hover:text-white/80'}`} />
-                  {item.name}
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                  <span>{item.name}</span>
                 </Link>
               )
             })}
           </nav>
-          <div className="border-t border-white/10 p-4 space-y-3">
+          
+          <div className="border-t border-gray-100 p-3">
             {user && (
-              <div className="flex items-center gap-3 px-3 py-2">
-                <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold">{getInitials(user.email)}</span>
+              <div className="flex items-center gap-3 mb-3 px-2 py-2 bg-gray-50 rounded-lg">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-semibold text-blue-600">
+                    {user.email?.charAt(0).toUpperCase()}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{user.email}</p>
-                  <p className="text-xs text-white/50">Administrator</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-900 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-500">Admin</p>
                 </div>
               </div>
             )}
-            <button className="flex items-center w-full px-3 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/5 rounded-xl transition-colors">
-              <Settings className="mr-3 h-5 w-5 text-white/60" />
-              Settings
-            </button>
             <button 
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2.5 text-sm font-semibold text-red-300 hover:bg-danger-600/10 rounded-xl transition-colors border border-danger-600/20"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors"
             >
-              <LogOut className="mr-3 h-5 w-5" />
+              <LogOut className="h-4 w-4" />
               Logout
             </button>
           </div>
@@ -215,45 +197,11 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Desktop topbar */}
-        <div className="hidden lg:block sticky top-0 z-30 bg-x-bg/70 backdrop-blur border-b border-white/10">
-          <div className="h-16 px-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                <LayoutDashboard className="h-5 w-5 text-white/70" />
-              </div>
-              <div className="leading-tight">
-                <p className="text-xs text-white/50">Control Center</p>
-                <p className="text-sm font-semibold">Operations Dashboard</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {user?.email && (
-                <div className="hidden xl:flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                  <div className="h-8 w-8 rounded-xl bg-primary-600/15 border border-primary-600/25 flex items-center justify-center">
-                    <span className="text-sm font-semibold">{getInitials(user.email)}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate max-w-[260px]">{user.email}</p>
-                    <p className="text-xs text-white/50">Admin</p>
-                  </div>
-                </div>
-              )}
-              <button className="btn-ghost flex items-center gap-2 border border-white/10">
-                <Settings className="h-4 w-4 text-white/70" />
-                <span className="text-sm">Settings</span>
-              </button>
-              <button onClick={handleLogout} className="btn-secondary flex items-center gap-2 border-danger-600/20 text-red-300">
-                <LogOut className="h-4 w-4" />
-                <span className="text-sm">Logout</span>
-              </button>
-            </div>
+      <div className="lg:pl-60">
+        <main className="pt-14 lg:pt-0 min-h-screen">
+          <div className="p-4 sm:p-6 lg:p-6">
+            {children}
           </div>
-        </div>
-        {/* Page content */}
-        <main className="pt-16 lg:pt-6 p-4 sm:p-6 lg:px-8 lg:pb-10">
-          {children}
         </main>
       </div>
     </div>
