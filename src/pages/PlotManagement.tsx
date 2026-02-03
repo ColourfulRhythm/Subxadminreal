@@ -18,15 +18,16 @@ import {
   X
 } from 'lucide-react'
 import { Plot } from '../types'
-import { usePlots, firebaseUtils } from '../hooks/useFirebase'
+import { usePlots, useInvestments, firebaseUtils } from '../hooks/useFirebase'
 import { exportPlotsToCSV } from '../utils/csvExport'
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import toast from 'react-hot-toast'
 
 export default function PlotManagement() {
   const { data: plots, loading, error } = usePlots()
+  const { data: investments } = useInvestments()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'popular' | 'low_stock' | 'sold_out'>('all')
@@ -34,7 +35,7 @@ export default function PlotManagement() {
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null)
   const [showPlotModal, setShowPlotModal] = useState(false)
   const [isRecalculating, setIsRecalculating] = useState(false)
-  
+
   // New state for modals
   const [showAddPlotModal, setShowAddPlotModal] = useState(false)
   const [showEditPriceModal, setShowEditPriceModal] = useState(false)
@@ -108,7 +109,72 @@ export default function PlotManagement() {
 
   const handleRecalculateMetrics = async () => {
     setIsRecalculating(true)
-    setTimeout(() => setIsRecalculating(false), 2000)
+    
+    try {
+      const safeInvestments = Array.isArray(investments) ? investments : []
+      
+      // Calculate actual SQM sold per plot from investments
+      const plotStats = new Map<string, { sqmSold: number, revenue: number, owners: Set<string> }>()
+      
+      safeInvestments.forEach((inv: any) => {
+        const plotId = inv.plotId || inv.plot_id
+        if (!plotId) return
+        
+        const sqm = Number(inv.sqm_purchased || inv.sqm || 0)
+        const amount = Number(inv.amount_paid || inv.Amount_paid || 0)
+        const userId = inv.userId || inv.user_id || inv.userEmail || 'unknown'
+        
+        if (!plotStats.has(plotId)) {
+          plotStats.set(plotId, { sqmSold: 0, revenue: 0, owners: new Set() })
+        }
+        
+        const stats = plotStats.get(plotId)!
+        stats.sqmSold += sqm
+        stats.revenue += amount
+        stats.owners.add(userId)
+      })
+      
+      // Update each plot with correct stats
+      let updatedCount = 0
+      for (const plot of plots) {
+        const stats = plotStats.get(plot.id)
+        const totalSqm = Number((plot as any).totalSqm || (plot as any).total_sqm || 5000)
+        
+        const sqmSold = stats?.sqmSold || 0
+        const revenue = stats?.revenue || 0
+        const owners = stats?.owners.size || 0
+        const availableSqm = Math.max(0, totalSqm - sqmSold)
+        
+        const plotRef = doc(db, 'plots', plot.id)
+        await updateDoc(plotRef, {
+          availableSqm: availableSqm,
+          available_sqm: availableSqm,
+          sold_sqm: sqmSold,
+          soldSqm: sqmSold,
+          totalRevenue: revenue,
+          total_revenue: revenue,
+          totalOwners: owners,
+          total_owners: owners,
+          updatedAt: new Date(),
+          updated_at: new Date()
+        })
+        updatedCount++
+      }
+      
+      toast.success(`Synced ${updatedCount} plots with investment data!`)
+      console.log('📊 Plot Sync Complete:', {
+        plotsUpdated: updatedCount,
+        investmentsProcessed: safeInvestments.length,
+        plotStats: Object.fromEntries(
+          Array.from(plotStats.entries()).map(([k, v]) => [k, { ...v, owners: v.owners.size }])
+        )
+      })
+    } catch (error) {
+      console.error('Error syncing plots:', error)
+      toast.error('Failed to sync plot data')
+    }
+    
+    setIsRecalculating(false)
   }
 
   const handleExportPlots = () => {
@@ -315,9 +381,11 @@ export default function PlotManagement() {
           <button
             onClick={handleRecalculateMetrics}
             disabled={isRecalculating}
-            className="btn-secondary flex items-center gap-2"
+            className="btn-secondary flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+            title="Sync plot stats from investments"
           >
             <RefreshCw className={`h-4 w-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isRecalculating ? 'Syncing...' : 'Sync Data'}</span>
           </button>
         </div>
       </div>
@@ -326,8 +394,8 @@ export default function PlotManagement() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon bg-blue-50">
-            <MapPin className="h-6 w-6 text-blue-600" />
-          </div>
+              <MapPin className="h-6 w-6 text-blue-600" />
+            </div>
           <div>
             <p className="stat-label">Total Plots</p>
             <p className="stat-value">{plots.length}</p>
@@ -337,36 +405,36 @@ export default function PlotManagement() {
         <div className="stat-card">
           <div className="stat-icon bg-emerald-50">
             <CheckCircle className="h-6 w-6 text-emerald-600" />
-          </div>
+            </div>
           <div>
             <p className="stat-label">Available</p>
             <p className="stat-value">
-              {plots.filter(p => p.status === 'available').length}
-            </p>
+                {plots.filter(p => p.status === 'available').length}
+              </p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon bg-violet-50">
             <Users className="h-6 w-6 text-violet-600" />
-          </div>
+            </div>
           <div>
             <p className="stat-label">Total Owners</p>
             <p className="stat-value">
-              {plots.reduce((sum, p) => sum + (p.totalOwners || 0), 0)}
-            </p>
+                {plots.reduce((sum, p) => sum + (p.totalOwners || 0), 0)}
+              </p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon bg-amber-50">
             <DollarSign className="h-6 w-6 text-amber-600" />
-          </div>
+            </div>
           <div>
             <p className="stat-label">Total Revenue</p>
             <p className="stat-value text-xl">
-              {formatCurrency(plots.reduce((sum, p) => sum + (p.totalRevenue || 0), 0))}
-            </p>
+                {formatCurrency(plots.reduce((sum, p) => sum + (p.totalRevenue || 0), 0))}
+              </p>
           </div>
         </div>
       </div>
@@ -871,14 +939,14 @@ export default function PlotManagement() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">Plot Details</h3>
-              <button
-                onClick={() => setShowPlotModal(false)}
+                <button
+                  onClick={() => setShowPlotModal(false)}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
-              >
+                >
                 <X className="h-5 w-5" />
-              </button>
-            </div>
-            
+                </button>
+              </div>
+              
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -891,13 +959,13 @@ export default function PlotManagement() {
                 </div>
               </div>
               
-              <div>
+                <div>
                 <label className="block text-xs font-medium text-gray-500 uppercase">Status</label>
                 <span className={`inline-flex items-center gap-1 mt-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusInfo(selectedPlot.status).color}`}>
-                  {getStatusIcon(selectedPlot.status)}
+                    {getStatusIcon(selectedPlot.status)}
                   {getStatusInfo(selectedPlot.status).label}
-                </span>
-              </div>
+                  </span>
+                </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>

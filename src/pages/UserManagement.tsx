@@ -673,12 +673,19 @@ export default function UserManagement() {
       console.log('✅ Investment created with ID:', investmentRef.id)
 
       // 2. Update plot availability (reduce available SQM)
+      // Update both camelCase and snake_case versions of the fields
       const plotRef = doc(db, 'plots', investmentForm.plotId)
       await updateDoc(plotRef, {
         availableSqm: increment(-sqm),
+        available_sqm: increment(-sqm),
         totalOwners: increment(1),
+        total_owners: increment(1),
         totalRevenue: increment(amountPaid),
-        updated_at: serverTimestamp()
+        total_revenue: increment(amountPaid),
+        sold_sqm: increment(sqm),
+        soldSqm: increment(sqm),
+        updated_at: serverTimestamp(),
+        updatedAt: serverTimestamp()
       })
       console.log('✅ Plot availability updated')
 

@@ -167,18 +167,43 @@ export function useDashboardStats() {
         const totalProjects = projectsSnapshot.size
         const totalPlots = plotsSnapshot.size
         
-        // Calculate total SQM sold using actual field names from your Firebase
-        const totalSqmSold = plotsSnapshot.docs.reduce((sum, doc) => {
-          const plot = doc.data()
-          // Use sold_sqm field from your Firebase data
-          return sum + (plot.sold_sqm || 0)
+        // Calculate total SQM sold from INVESTMENTS (source of truth)
+        const totalSqmSold = investmentsSnapshot.docs.reduce((sum, doc) => {
+          const investment = doc.data()
+          // Check multiple possible field names for SQM
+          const sqm = Number(investment.sqm_purchased || investment.sqm || 0)
+          return sum + (Number.isFinite(sqm) ? sqm : 0)
         }, 0)
+        
+        // Also calculate from plots for comparison (using various field names)
+        const totalSqmFromPlots = plotsSnapshot.docs.reduce((sum, doc) => {
+          const plot = doc.data()
+          // Try multiple field names
+          const soldSqm = Number(
+            plot.sold_sqm || 
+            plot.soldSqm || 
+            plot.sqm_sold ||
+            (plot.totalSqm - (plot.availableSqm || 0)) || 
+            0
+          )
+          return sum + (Number.isFinite(soldSqm) ? soldSqm : 0)
+        }, 0)
+        
+        // Use the higher value (in case one source is more up-to-date)
+        const finalSqmSold = Math.max(totalSqmSold, totalSqmFromPlots)
+        
+        console.log('📊 Dashboard Stats Debug:', {
+          sqmFromInvestments: totalSqmSold,
+          sqmFromPlots: totalSqmFromPlots,
+          usingValue: finalSqmSold
+        })
         
         // Calculate platform revenue from investments using actual field names
         const platformRevenue = investmentsSnapshot.docs.reduce((sum, doc) => {
           const investment = doc.data()
-          // Use amount_paid field from your investments collection
-          return sum + (investment.amount_paid || 0)
+          // Check multiple possible field names for amount
+          const amount = Number(investment.amount_paid || investment.Amount_paid || investment.totalAmount || 0)
+          return sum + (Number.isFinite(amount) ? amount : 0)
         }, 0)
         
         // Pending verifications from investments collection (since investmentRequests is empty)
@@ -197,7 +222,7 @@ export function useDashboardStats() {
           totalUsers,
           totalProjects,
           totalPlots,
-          totalSqmSold,
+          totalSqmSold: finalSqmSold,
           platformRevenue,
           pendingVerifications,
           activeReferrals,
