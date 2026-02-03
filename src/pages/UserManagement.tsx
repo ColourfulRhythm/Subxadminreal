@@ -67,15 +67,42 @@ export default function UserManagement() {
   const safePlots = Array.isArray(plots) ? plots : []
   
   // Combine investments and approved investment_requests for portfolio calculation
-  // IMPORTANT: Avoid double-counting by excluding investment_requests that have an investmentId
-  // (meaning they've already been moved to the investments collection)
+  // IMPORTANT: Avoid double-counting
+  
+  // First, get all investment IDs and create a set of unique identifiers
+  const investmentKeys = new Set(
+    safeInvestments.map((inv: any) => {
+      // Create a unique key based on user + amount + sqm to detect duplicates
+      const email = (inv.userEmail || inv.user_email || '').toLowerCase()
+      const amount = inv.amount_paid || inv.Amount_paid || 0
+      const sqm = inv.sqm_purchased || inv.sqm || 0
+      return `${email}-${amount}-${sqm}`
+    })
+  )
+  
   const allInvestmentData = [
     ...safeInvestments,
-    ...safeInvestmentRequests.filter((req: any) => 
-      (req.status === 'approved' || req.status === 'completed') &&
-      !req.investmentId && // Exclude if already linked to an investment record
-      req.source !== 'manual_admin_entry' // Exclude manual entries (they're in investments)
-    )
+    ...safeInvestmentRequests.filter((req: any) => {
+      // Only include approved/completed requests
+      if (req.status !== 'approved' && req.status !== 'completed') return false
+      
+      // Exclude if already linked to an investment record
+      if (req.investmentId) return false
+      
+      // Exclude manual admin entries (they're already in investments)
+      if (req.source === 'manual_admin_entry') return false
+      
+      // Check if this request is a duplicate of an existing investment
+      const email = (req.userEmail || req.user_email || '').toLowerCase()
+      const amount = req.amount_paid || req.Amount_paid || req.totalAmount || 0
+      const sqm = req.sqm_purchased || req.sqm || 0
+      const key = `${email}-${amount}-${sqm}`
+      
+      // If we already have this investment, skip it
+      if (investmentKeys.has(key)) return false
+      
+      return true
+    })
   ]
 
   // Normalize status across inconsistent Firestore/user schema variants.
