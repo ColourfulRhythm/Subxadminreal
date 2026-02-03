@@ -260,6 +260,11 @@ export const firebaseUtils = {
     await updateDoc(docRef, updates)
   },
 
+  async deleteUser(userId: string) {
+    const docRef = doc(db, 'user_profiles', userId)
+    await deleteDoc(docRef)
+  },
+
   // Plot operations
   async updatePlotPrice(plotId: string, newPrice: number, reason: string) {
     const docRef = doc(db, 'plots', plotId)

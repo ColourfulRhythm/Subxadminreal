@@ -12,7 +12,10 @@ import {
   History,
   Mail,
   Save,
-  X
+  X,
+  AlertTriangle,
+  Trash2,
+  Merge
 } from 'lucide-react'
 import { User } from '../types'
 import { useUsers, useInvestments, useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
@@ -41,6 +44,8 @@ export default function UserManagement() {
     bank_name: ''
   })
   const [processing, setProcessing] = useState(false)
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false)
+  const [duplicateGroups, setDuplicateGroups] = useState<Array<{email: string, users: User[]}>>([])
   
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
@@ -368,6 +373,121 @@ export default function UserManagement() {
     exportUsersToCSV(filteredUsers, safeInvestments)
   }
 
+  // Detect duplicate users by email
+  const detectDuplicates = () => {
+    const emailMap = new Map<string, User[]>()
+    
+    safeUsers.forEach(user => {
+      const email = normalizeEmail(user.email)
+      if (email) {
+        if (!emailMap.has(email)) {
+          emailMap.set(email, [])
+        }
+        emailMap.get(email)!.push(user)
+      }
+    })
+    
+    // Filter to only groups with duplicates (more than 1 user per email)
+    const duplicates: Array<{email: string, users: User[]}> = []
+    emailMap.forEach((users, email) => {
+      if (users.length > 1) {
+        duplicates.push({ email, users })
+      }
+    })
+    
+    setDuplicateGroups(duplicates)
+    setShowDuplicatesModal(true)
+    
+    if (duplicates.length === 0) {
+      toast.success('No duplicate users found!')
+    } else {
+      toast(`Found ${duplicates.length} duplicate email(s)`, { icon: '⚠️' })
+    }
+  }
+
+  // Delete a duplicate user (keep the other one)
+  const handleDeleteDuplicate = async (userId: string, email: string) => {
+    if (!confirm(`Are you sure you want to delete this duplicate user record? This action cannot be undone.`)) {
+      return
+    }
+    
+    setProcessing(true)
+    try {
+      await firebaseUtils.deleteUser(userId)
+      toast.success('Duplicate user deleted')
+      
+      // Update the duplicates list
+      setDuplicateGroups(prev => 
+        prev.map(group => {
+          if (group.email === email) {
+            return {
+              ...group,
+              users: group.users.filter(u => u.id !== userId)
+            }
+          }
+          return group
+        }).filter(group => group.users.length > 1) // Remove groups that no longer have duplicates
+      )
+    } catch (error) {
+      toast.error('Failed to delete user')
+      console.error(error)
+    }
+    setProcessing(false)
+  }
+
+  // Merge two duplicate users (combine their data into the primary one)
+  const handleMergeDuplicates = async (primaryUser: User, secondaryUser: User) => {
+    if (!confirm(`Merge user data into ${primaryUser.email}? The secondary record will be deleted.`)) {
+      return
+    }
+    
+    setProcessing(true)
+    try {
+      // Get the best values from both users
+      const mergedData: any = {
+        full_name: primaryUser.full_name || secondaryUser.full_name,
+        phone: getUserPhone(primaryUser) || getUserPhone(secondaryUser),
+        address: (primaryUser as any).address || (secondaryUser as any).address,
+        occupation: (primaryUser as any).occupation || (secondaryUser as any).occupation,
+        bank_name: (primaryUser as any).bank_name || (secondaryUser as any).bank_name,
+        bank_account: (primaryUser as any).bank_account || (secondaryUser as any).bank_account,
+        // Keep the earliest created date
+        created_at: getUserCreatedDate(primaryUser) && getUserCreatedDate(secondaryUser)
+          ? (getUserCreatedDate(primaryUser)! < getUserCreatedDate(secondaryUser)! 
+              ? (primaryUser as any).created_at 
+              : (secondaryUser as any).created_at)
+          : (primaryUser as any).created_at || (secondaryUser as any).created_at,
+        // Combine investment totals (will be recalculated from investments anyway)
+        updated_at: new Date()
+      }
+      
+      // Update primary user with merged data
+      await firebaseUtils.updateUserStatus(primaryUser.id, mergedData)
+      
+      // Delete secondary user
+      await firebaseUtils.deleteUser(secondaryUser.id)
+      
+      toast.success('Users merged successfully')
+      
+      // Update the duplicates list
+      setDuplicateGroups(prev => 
+        prev.map(group => {
+          if (group.email === normalizeEmail(primaryUser.email)) {
+            return {
+              ...group,
+              users: group.users.filter(u => u.id !== secondaryUser.id)
+            }
+          }
+          return group
+        }).filter(group => group.users.length > 1)
+      )
+    } catch (error) {
+      toast.error('Failed to merge users')
+      console.error(error)
+    }
+    setProcessing(false)
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -442,6 +562,14 @@ export default function UserManagement() {
           <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
           <p className="text-gray-600">Manage platform users and their activities</p>
         </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={detectDuplicates}
+            className="btn-secondary flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span>Find Duplicates</span>
+          </button>
         <button
           onClick={handleExportUsers}
           className="btn-secondary flex items-center space-x-2"
@@ -449,6 +577,7 @@ export default function UserManagement() {
           <Download className="h-4 w-4" />
           <span>Export CSV</span>
         </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -724,7 +853,7 @@ export default function UserManagement() {
                       {selectedUser.full_name || 'Unknown User'}
                     </h4>
                     <p className="text-sm text-gray-500">{selectedUser.email}</p>
-                  </div>
+                </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -751,19 +880,19 @@ export default function UserManagement() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referral Code</label>
                     <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
-                  </div>
+                </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Wallet Balance</label>
                     <p className="text-sm text-gray-900">{formatCurrency(selectedUser.wallet_balance || 0)}</p>
-                  </div>
+              </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Joined</label>
                     <p className="text-sm text-gray-900">{formatDate(selectedUser.created_at)}</p>
-                  </div>
+            </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Last Login</label>
                     <p className="text-sm text-gray-900">{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</p>
-                  </div>
+          </div>
                 </div>
 
                 {selectedUser.address && (
@@ -983,6 +1112,122 @@ export default function UserManagement() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicates Modal */}
+      {showDuplicatesModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[900px] shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="h-6 w-6 text-orange-500" />
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Duplicate Users Detected
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowDuplicatesModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              {duplicateGroups.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-gray-900">No Duplicates Found</p>
+                  <p className="text-gray-500">All user emails are unique.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <p className="text-sm text-orange-800">
+                      <strong>Found {duplicateGroups.length} duplicate email(s).</strong> Review each group and decide which record to keep.
+                      You can either delete the duplicate or merge both records into one.
+                    </p>
+                  </div>
+
+                  {duplicateGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="bg-gray-100 px-4 py-3 border-b">
+                        <h4 className="font-medium text-gray-900">
+                          Email: <span className="text-blue-600">{group.email}</span>
+                          <span className="ml-2 text-sm text-gray-500">({group.users.length} records)</span>
+                        </h4>
+                      </div>
+                      
+                      <div className="divide-y divide-gray-100">
+                        {group.users.map((user, userIdx) => (
+                          <div key={user.id} className="p-4 hover:bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3">
+                                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-medium">
+                                    {userIdx + 1}
+                                  </span>
+                                  <div>
+                                    <p className="font-medium text-gray-900">{user.full_name || 'No name'}</p>
+                                    <p className="text-sm text-gray-500">ID: {user.id}</p>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-3 grid grid-cols-4 gap-4 text-sm">
+                                  <div>
+                                    <p className="text-gray-500">Phone</p>
+                                    <p className="text-gray-900">{getUserPhone(user) || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500">Status</p>
+                                    <p className={`font-medium ${getUserStatus(user) === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                                      {getUserStatus(user)}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500">Portfolio</p>
+                                    <p className="text-gray-900">{getUserPortfolioSqm(user.id, user.email || '').toLocaleString()} SQM</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500">Created</p>
+                                    <p className="text-gray-900">{formatDate(getUserCreatedDate(user))}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 ml-4">
+                                {group.users.length === 2 && userIdx === 1 && (
+                                  <button
+                                    onClick={() => handleMergeDuplicates(group.users[0], user)}
+                                    disabled={processing}
+                                    className="btn-secondary text-sm px-3 py-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                    title="Merge into first record"
+                                  >
+                                    <Merge className="h-4 w-4 mr-1" />
+                                    Merge
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteDuplicate(user.id, group.email)}
+                                  disabled={processing}
+                                  className="btn-secondary text-sm px-3 py-1 text-red-600 border-red-300 hover:bg-red-50"
+                                  title="Delete this record"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
