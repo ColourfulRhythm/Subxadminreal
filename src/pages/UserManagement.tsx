@@ -15,17 +15,21 @@ import {
   X,
   AlertTriangle,
   Trash2,
-  Merge
+  Merge,
+  PlusCircle
 } from 'lucide-react'
 import { User } from '../types'
-import { useUsers, useInvestments, useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
+import { useUsers, useInvestments, useInvestmentRequests, usePlots, firebaseUtils } from '../hooks/useFirebase'
 import { exportUsersToCSV } from '../utils/csvExport'
 import toast from 'react-hot-toast'
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore'
+import { db } from '../lib/firebase'
 
 export default function UserManagement() {
   const { data: users, loading, error } = useUsers()
   const { data: investments } = useInvestments()
   const { data: investmentRequests } = useInvestmentRequests()
+  const { data: plots } = usePlots()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
@@ -46,11 +50,21 @@ export default function UserManagement() {
   const [processing, setProcessing] = useState(false)
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false)
   const [duplicateGroups, setDuplicateGroups] = useState<Array<{email: string, users: User[]}>>([])
+  const [showAddInvestmentModal, setShowAddInvestmentModal] = useState(false)
+  const [investmentForm, setInvestmentForm] = useState({
+    plotId: '',
+    sqm: '',
+    amountPaid: '',
+    pricePerSqm: '',
+    paymentMethod: 'bank_transfer',
+    notes: ''
+  })
   
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
   const safeInvestments = Array.isArray(investments) ? investments : []
   const safeInvestmentRequests = Array.isArray(investmentRequests) ? investmentRequests : []
+  const safePlots = Array.isArray(plots) ? plots : []
   
   // Combine investments and approved investment_requests for portfolio calculation
   const allInvestmentData = [
@@ -543,6 +557,121 @@ export default function UserManagement() {
     setProcessing(false)
   }
 
+  // Open add investment modal for a user
+  const handleAddInvestment = (user: User) => {
+    setSelectedUser(user)
+    setInvestmentForm({
+      plotId: '',
+      sqm: '',
+      amountPaid: '',
+      pricePerSqm: '',
+      paymentMethod: 'bank_transfer',
+      notes: ''
+    })
+    setShowAddInvestmentModal(true)
+  }
+
+  // Calculate price per SQM when amount or sqm changes
+  const calculatePricePerSqm = () => {
+    const sqm = Number(investmentForm.sqm)
+    const amount = Number(investmentForm.amountPaid)
+    if (sqm > 0 && amount > 0) {
+      return (amount / sqm).toFixed(2)
+    }
+    return ''
+  }
+
+  // Submit manual investment
+  const handleSubmitInvestment = async () => {
+    if (!selectedUser) return
+    
+    const sqm = Number(investmentForm.sqm)
+    const amountPaid = Number(investmentForm.amountPaid)
+    const pricePerSqm = investmentForm.pricePerSqm ? Number(investmentForm.pricePerSqm) : (amountPaid / sqm)
+    
+    if (!investmentForm.plotId || sqm <= 0 || amountPaid <= 0) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    const selectedPlot = safePlots.find(p => p.id === investmentForm.plotId)
+    if (!selectedPlot) {
+      toast.error('Please select a valid plot')
+      return
+    }
+
+    setProcessing(true)
+    try {
+      // 1. Create investment record
+      const investmentData = {
+        userId: selectedUser.id,
+        user_id: selectedUser.id,
+        userEmail: selectedUser.email,
+        user_email: selectedUser.email,
+        userName: selectedUser.full_name || selectedUser.email,
+        user_name: selectedUser.full_name || selectedUser.email,
+        plotId: investmentForm.plotId,
+        plot_id: investmentForm.plotId,
+        plotName: selectedPlot.name || 'Plot',
+        plot_name: selectedPlot.name || 'Plot',
+        projectId: (selectedPlot as any).projectId || (selectedPlot as any).project_id || '',
+        project_id: (selectedPlot as any).projectId || (selectedPlot as any).project_id || '',
+        project_title: (selectedPlot as any).projectName || (selectedPlot as any).project_name || selectedPlot.name,
+        sqm: sqm,
+        sqm_purchased: sqm,
+        amount_paid: amountPaid,
+        Amount_paid: amountPaid,
+        price_per_sqm: pricePerSqm,
+        pricePerSqm: pricePerSqm,
+        totalAmount: amountPaid,
+        status: 'active',
+        investment_type: 'plot_purchase',
+        payment_method: investmentForm.paymentMethod,
+        paymentMethod: investmentForm.paymentMethod,
+        payment_status: 'verified',
+        paymentStatus: 'verified',
+        created_at: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        approved_at: serverTimestamp(),
+        approved_by: 'admin_manual_entry',
+        source: 'manual_admin_entry',
+        notes: investmentForm.notes || 'Manual investment added by admin'
+      }
+
+      const investmentRef = await addDoc(collection(db, 'investments'), investmentData)
+      console.log('✅ Investment created with ID:', investmentRef.id)
+
+      // 2. Update plot availability (reduce available SQM)
+      const plotRef = doc(db, 'plots', investmentForm.plotId)
+      await updateDoc(plotRef, {
+        availableSqm: increment(-sqm),
+        totalOwners: increment(1),
+        totalRevenue: increment(amountPaid),
+        updated_at: serverTimestamp()
+      })
+      console.log('✅ Plot availability updated')
+
+      // 3. Also create an investment_request record (for consistency)
+      const requestData = {
+        ...investmentData,
+        status: 'completed',
+        processedAt: serverTimestamp(),
+        processedBy: 'admin_manual_entry',
+        investmentId: investmentRef.id
+      }
+      await addDoc(collection(db, 'investment_requests'), requestData)
+      console.log('✅ Investment request record created')
+
+      toast.success(`Successfully added ${sqm} SQM investment for ${selectedUser.email}`)
+      setShowAddInvestmentModal(false)
+      
+    } catch (error) {
+      toast.error('Failed to add investment')
+      console.error('Error adding investment:', error)
+    }
+    setProcessing(false)
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -846,6 +975,13 @@ export default function UserManagement() {
                         title="Investment History"
                       >
                         <History className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleAddInvestment(user)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Add Investment"
+                      >
+                        <PlusCircle className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleSendEmail(user.email || '')}
@@ -1283,6 +1419,155 @@ export default function UserManagement() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Investment Modal */}
+      {showAddInvestmentModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[550px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Add Manual Investment</h3>
+                  <p className="text-sm text-gray-500">For: {selectedUser.full_name || selectedUser.email}</p>
+                </div>
+                <button
+                  onClick={() => setShowAddInvestmentModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This will create an investment record and update the plot's available SQM.
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Plot Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Plot <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={investmentForm.plotId}
+                    onChange={(e) => setInvestmentForm({...investmentForm, plotId: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">-- Select a Plot --</option>
+                    {safePlots.map(plot => (
+                      <option key={plot.id} value={plot.id}>
+                        {plot.name || 'Unnamed Plot'} - Available: {((plot as any).availableSqm || 0).toLocaleString()} SQM
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* SQM */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SQM Purchased <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={investmentForm.sqm}
+                    onChange={(e) => setInvestmentForm({...investmentForm, sqm: e.target.value})}
+                    placeholder="e.g. 300"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Amount Paid */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount Paid (₦) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={investmentForm.amountPaid}
+                    onChange={(e) => setInvestmentForm({...investmentForm, amountPaid: e.target.value})}
+                    placeholder="e.g. 3000000"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {investmentForm.sqm && investmentForm.amountPaid && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Price per SQM: ₦{Number(calculatePricePerSqm()).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={investmentForm.paymentMethod}
+                    onChange={(e) => setInvestmentForm({...investmentForm, paymentMethod: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    value={investmentForm.notes}
+                    onChange={(e) => setInvestmentForm({...investmentForm, notes: e.target.value})}
+                    placeholder="Any additional notes about this investment..."
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Summary */}
+                {investmentForm.plotId && investmentForm.sqm && investmentForm.amountPaid && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-800 mb-2">Investment Summary</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="text-green-700">User:</div>
+                      <div className="text-green-900 font-medium">{selectedUser.email}</div>
+                      <div className="text-green-700">Plot:</div>
+                      <div className="text-green-900 font-medium">
+                        {safePlots.find(p => p.id === investmentForm.plotId)?.name || 'Unknown'}
+                      </div>
+                      <div className="text-green-700">SQM:</div>
+                      <div className="text-green-900 font-medium">{Number(investmentForm.sqm).toLocaleString()}</div>
+                      <div className="text-green-700">Amount:</div>
+                      <div className="text-green-900 font-medium">₦{Number(investmentForm.amountPaid).toLocaleString()}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex space-x-2 pt-4">
+                  <button
+                    onClick={handleSubmitInvestment}
+                    disabled={processing || !investmentForm.plotId || !investmentForm.sqm || !investmentForm.amountPaid}
+                    className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    {processing ? 'Adding Investment...' : 'Add Investment'}
+                  </button>
+                  <button
+                    onClick={() => setShowAddInvestmentModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
