@@ -10,8 +10,9 @@ import InvestmentRequests from './pages/InvestmentRequests'
 import WithdrawalManagement from './pages/WithdrawalManagement'
 import ReferralAnalytics from './pages/ReferralAnalytics'
 import PricingManagement from './pages/PricingManagement'
-import LandingPageBuilder from './pages/LandingPageBuilder'
-import FirebaseTest from './pages/FirebaseTest'
+import Notifications from './pages/Notifications'
+import Settings from './pages/Settings'
+import Reports from './pages/Reports'
 
 function App() {
   return (
@@ -26,9 +27,10 @@ function App() {
               <Route path="/investments" element={<InvestmentRequests />} />
               <Route path="/withdrawals" element={<WithdrawalManagement />} />
               <Route path="/referrals" element={<ReferralAnalytics />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/pricing" element={<PricingManagement />} />
-              <Route path="/landing-pages" element={<LandingPageBuilder />} />
-              <Route path="/firebase-test" element={<FirebaseTest />} />
+              <Route path="/settings" element={<Settings />} />
             </Routes>
         </Layout>
         <Toaster 

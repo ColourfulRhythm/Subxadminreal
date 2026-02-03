@@ -11,13 +11,13 @@ import {
   DollarSign, 
   Users2, 
   DollarSign as PricingIcon,
-  Layout as PageBuilderIcon,
   X,
   LogOut,
   Settings,
-  Database,
   Menu,
-  ChevronRight
+  ChevronRight,
+  Bell,
+  FileText
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -32,9 +32,10 @@ const navigation = [
   { name: 'Investments', href: '/investments', icon: TrendingUp },
   { name: 'Withdrawals', href: '/withdrawals', icon: DollarSign },
   { name: 'Referrals', href: '/referrals', icon: Users2 },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Pricing', href: '/pricing', icon: PricingIcon },
-  { name: 'Landing Pages', href: '/landing-pages', icon: PageBuilderIcon },
-  { name: 'Firebase Test', href: '/firebase-test', icon: Database },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export default function Layout({ children }: LayoutProps) {

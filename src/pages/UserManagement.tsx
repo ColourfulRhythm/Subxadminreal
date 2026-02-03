@@ -8,11 +8,16 @@ import {
   CheckCircle, 
   XCircle,
   TrendingUp,
-  Users
+  Users,
+  History,
+  Mail,
+  Save,
+  X
 } from 'lucide-react'
 import { User } from '../types'
-import { useUsers, useInvestments } from '../hooks/useFirebase'
+import { useUsers, useInvestments, firebaseUtils } from '../hooks/useFirebase'
 import { exportUsersToCSV } from '../utils/csvExport'
+import toast from 'react-hot-toast'
 
 export default function UserManagement() {
   const { data: users, loading, error } = useUsers()
@@ -24,6 +29,17 @@ export default function UserManagement() {
   const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'name'>('latest')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    address: '',
+    occupation: '',
+    bank_name: ''
+  })
+  const [processing, setProcessing] = useState(false)
   
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
@@ -110,6 +126,16 @@ export default function UserManagement() {
         (inv as any).user_email === userEmail
       )
       .reduce((total, inv) => total + ((inv as any).sqm_purchased || inv.sqm || 0), 0)
+  }
+
+  // Get user's investment history
+  const getUserInvestmentHistory = (userId: string, userEmail: string) => {
+    return safeInvestments.filter(inv => 
+      inv.userId === userId || 
+      inv.user_id === userId || 
+      inv.userEmail === userEmail || 
+      (inv as any).user_email === userEmail
+    )
   }
   
   // Helper function to get user's created_at date for sorting
@@ -205,9 +231,80 @@ export default function UserManagement() {
       return 0
     })
 
-  const handleUserAction = async (userId: string, action: string) => {
-    // Implement user actions (activate, deactivate, verify, etc.)
-    console.log(`Performing ${action} on user ${userId}`)
+  // User Actions
+  const handleActivateUser = async (userId: string) => {
+    setProcessing(true)
+    try {
+      await firebaseUtils.updateUserStatus(userId, { 
+        status: 'active',
+        isActive: true,
+        updated_at: new Date()
+      })
+      toast.success('User activated successfully')
+    } catch (error) {
+      toast.error('Failed to activate user')
+      console.error(error)
+    }
+    setProcessing(false)
+  }
+
+  const handleDeactivateUser = async (userId: string) => {
+    setProcessing(true)
+    try {
+      await firebaseUtils.updateUserStatus(userId, { 
+        status: 'inactive',
+        isActive: false,
+        updated_at: new Date()
+      })
+      toast.success('User deactivated successfully')
+    } catch (error) {
+      toast.error('Failed to deactivate user')
+      console.error(error)
+    }
+    setProcessing(false)
+  }
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setEditForm({
+      full_name: user.full_name || '',
+      email: user.email || '',
+      phone: getUserPhone(user) || '',
+      address: user.address || '',
+      occupation: user.occupation || '',
+      bank_name: user.bank_name || ''
+    })
+    setShowEditModal(true)
+  }
+
+  const handleSaveUser = async () => {
+    if (!selectedUser) return
+    setProcessing(true)
+    try {
+      await firebaseUtils.updateUserStatus(selectedUser.id, {
+        full_name: editForm.full_name,
+        phone: editForm.phone,
+        address: editForm.address,
+        occupation: editForm.occupation,
+        bank_name: editForm.bank_name,
+        updated_at: new Date()
+      })
+      toast.success('User updated successfully')
+      setShowEditModal(false)
+    } catch (error) {
+      toast.error('Failed to update user')
+      console.error(error)
+    }
+    setProcessing(false)
+  }
+
+  const handleViewHistory = (user: User) => {
+    setSelectedUser(user)
+    setShowHistoryModal(true)
+  }
+
+  const handleSendEmail = (email: string) => {
+    window.location.href = `mailto:${email}`
   }
 
   const handleExportUsers = () => {
@@ -319,7 +416,7 @@ export default function UserManagement() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Users</p>
               <p className="text-2xl font-bold text-gray-900">
-                {safeUsers.filter(user => user.status === 'active').length}
+                {safeUsers.filter(user => getUserStatus(user) === 'active').length}
               </p>
             </div>
           </div>
@@ -451,12 +548,6 @@ export default function UserManagement() {
                         <div className="text-sm text-gray-600 font-medium mt-1">
                           📞 {getUserPhone(user) || 'No phone'}
                         </div>
-                        {/* Temporary debug: Show all user fields to identify phone field name */}
-                        {process.env.NODE_ENV === 'development' && !getUserPhone(user) && (
-                          <div className="text-xs text-red-500 mt-1">
-                            Debug: Fields: {Object.keys(user).filter(k => k.toLowerCase().includes('phone') || k.toLowerCase().includes('mobile') || k.toLowerCase().includes('contact')).join(', ') || 'None found'}
-                          </div>
-                        )}
                       </div>
                     </div>
                   </td>
@@ -466,14 +557,14 @@ export default function UserManagement() {
                       const label = status === 'unknown' ? (user.status || 'unknown') : status
                       const color =
                         status === 'active'
-                          ? 'bg-green-100 text-green-800'
+                        ? 'bg-green-100 text-green-800' 
                           : status === 'inactive'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-800'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
                       return (
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${color}`}>
                           {label}
-                        </span>
+                    </span>
                       )
                     })()}
                   </td>
@@ -497,18 +588,36 @@ export default function UserManagement() {
                           setShowUserModal(true)
                         }}
                         className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleUserAction(user.id, 'edit')}
+                        onClick={() => handleEditUser(user)}
                         className="text-gray-600 hover:text-gray-900"
+                        title="Edit User"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleUserAction(user.id, getUserStatus(user) === 'active' ? 'deactivate' : 'activate')}
+                        onClick={() => handleViewHistory(user)}
+                        className="text-purple-600 hover:text-purple-900"
+                        title="Investment History"
+                      >
+                        <History className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleSendEmail(user.email || '')}
+                        className="text-cyan-600 hover:text-cyan-900"
+                        title="Send Email"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => getUserStatus(user) === 'active' ? handleDeactivateUser(user.id) : handleActivateUser(user.id)}
                         className={getUserStatus(user) === 'active' ? "text-red-600 hover:text-red-900" : "text-green-600 hover:text-green-900"}
+                        title={getUserStatus(user) === 'active' ? 'Deactivate User' : 'Activate User'}
+                        disabled={processing}
                       >
                         {getUserStatus(user) === 'active' ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                       </button>
@@ -534,7 +643,7 @@ export default function UserManagement() {
       {/* User Detail Modal */}
       {showUserModal && selectedUser && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+          <div className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">User Details</h3>
@@ -547,19 +656,32 @@ export default function UserManagement() {
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <p className="text-sm text-gray-900">
-                    {selectedUser.full_name || `${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'Unknown'}
-                  </p>
+                <div className="flex items-center space-x-4">
+                  <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-2xl font-medium text-gray-700">
+                      {selectedUser.full_name?.charAt(0) || selectedUser.email?.charAt(0)?.toUpperCase() || 'U'}
+                    </span>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="text-sm text-gray-900">{selectedUser.email}</p>
+                    <h4 className="text-lg font-medium text-gray-900">
+                      {selectedUser.full_name || 'Unknown User'}
+                    </h4>
+                    <p className="text-sm text-gray-500">{selectedUser.email}</p>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <p className="text-sm text-gray-900">{getUserPhone(selectedUser as any) || selectedUser.phone || 'Not provided'}</p>
+                    <p className="text-sm text-gray-900">{getUserPhone(selectedUser as any) || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      getUserStatus(selectedUser) === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {getUserStatus(selectedUser)}
+                    </span>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Total Investment</label>
@@ -571,7 +693,237 @@ export default function UserManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Referral Code</label>
-                  <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
+                    <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Wallet Balance</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedUser.wallet_balance || 0)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Joined</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedUser.created_at)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Last Login</label>
+                    <p className="text-sm text-gray-900">{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</p>
+                  </div>
+                </div>
+
+                {selectedUser.address && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                    <p className="text-sm text-gray-900">{selectedUser.address}</p>
+                  </div>
+                )}
+
+                <div className="flex space-x-2 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowUserModal(false)
+                      handleEditUser(selectedUser)
+                    }}
+                    className="btn-primary flex-1"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit User
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserModal(false)
+                      handleViewHistory(selectedUser)
+                    }}
+                    className="btn-secondary flex-1"
+                  >
+                    <History className="h-4 w-4 mr-2" />
+                    View History
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Edit User</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <input
+                    type="text"
+                    className="input-field mt-1"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email (Read-only)</label>
+                  <input
+                    type="email"
+                    className="input-field mt-1 bg-gray-100"
+                    value={editForm.email}
+                    disabled
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
+                  <input
+                    type="text"
+                    className="input-field mt-1"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Address</label>
+                  <input
+                    type="text"
+                    className="input-field mt-1"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Occupation</label>
+                  <input
+                    type="text"
+                    className="input-field mt-1"
+                    value={editForm.occupation}
+                    onChange={(e) => setEditForm({...editForm, occupation: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                  <input
+                    type="text"
+                    className="input-field mt-1"
+                    value={editForm.bank_name}
+                    onChange={(e) => setEditForm({...editForm, bank_name: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex space-x-2 pt-4">
+                  <button
+                    onClick={handleSaveUser}
+                    disabled={processing}
+                    className="btn-primary flex-1"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {processing ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    onClick={() => setShowEditModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Investment History Modal */}
+      {showHistoryModal && selectedUser && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[700px] shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Investment History - {selectedUser.full_name || selectedUser.email}
+                </h3>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-blue-600">Total Invested</p>
+                    <p className="text-xl font-bold text-blue-900">
+                      {formatCurrency(getUserTotalInvestment(selectedUser.id, selectedUser.email || ''))}
+                    </p>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <p className="text-sm text-green-600">Total SQM</p>
+                    <p className="text-xl font-bold text-green-900">
+                      {getUserPortfolioSqm(selectedUser.id, selectedUser.email || '').toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    <p className="text-sm text-purple-600">Investments</p>
+                    <p className="text-xl font-bold text-purple-900">
+                      {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').length}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Investment List */}
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SQM</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').map((inv: any, idx) => (
+                        <tr key={inv.id || idx}>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {inv.project_title || inv.plotName || 'Unknown'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {formatCurrency(inv.amount_paid || inv.Amount_paid || 0)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {inv.sqm_purchased || inv.sqm || 0}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {formatDate(inv.created_at || inv.createdAt)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              inv.status === 'completed' || inv.status === 'approved' 
+                                ? 'bg-green-100 text-green-800' 
+                                : inv.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {inv.status || 'unknown'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No investment history found
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
