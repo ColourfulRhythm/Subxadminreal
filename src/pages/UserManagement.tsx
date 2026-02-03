@@ -67,10 +67,14 @@ export default function UserManagement() {
   const safePlots = Array.isArray(plots) ? plots : []
   
   // Combine investments and approved investment_requests for portfolio calculation
+  // IMPORTANT: Avoid double-counting by excluding investment_requests that have an investmentId
+  // (meaning they've already been moved to the investments collection)
   const allInvestmentData = [
     ...safeInvestments,
     ...safeInvestmentRequests.filter((req: any) => 
-      req.status === 'approved' || req.status === 'completed'
+      (req.status === 'approved' || req.status === 'completed') &&
+      !req.investmentId && // Exclude if already linked to an investment record
+      req.source !== 'manual_admin_entry' // Exclude manual entries (they're in investments)
     )
   ]
 
@@ -651,16 +655,8 @@ export default function UserManagement() {
       })
       console.log('✅ Plot availability updated')
 
-      // 3. Also create an investment_request record (for consistency)
-      const requestData = {
-        ...investmentData,
-        status: 'completed',
-        processedAt: serverTimestamp(),
-        processedBy: 'admin_manual_entry',
-        investmentId: investmentRef.id
-      }
-      await addDoc(collection(db, 'investment_requests'), requestData)
-      console.log('✅ Investment request record created')
+      // NOTE: We do NOT create an investment_requests record for manual entries
+      // to avoid double-counting. The investment record in 'investments' is sufficient.
 
       toast.success(`Successfully added ${sqm} SQM investment for ${selectedUser.email}`)
       setShowAddInvestmentModal(false)
