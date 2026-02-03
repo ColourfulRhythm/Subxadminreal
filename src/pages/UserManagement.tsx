@@ -131,11 +131,16 @@ export default function UserManagement() {
     // Check various ID fields
     if (inv.userId === userId || inv.user_id === userId) return true
     
-    // Check various email fields (case-insensitive)
+    // Check various email fields (case-insensitive) - including more variations
     const invEmails = [
       normalizeEmail(inv.userEmail),
       normalizeEmail(inv.user_email),
-      normalizeEmail(inv.email)
+      normalizeEmail(inv.email),
+      normalizeEmail(inv.Email),          // Capital E
+      normalizeEmail(inv.USER_EMAIL),     // All caps
+      normalizeEmail(inv.useremail),      // No underscore
+      normalizeEmail(inv.emailAddress),   // Alternative name
+      normalizeEmail(inv.email_address),  // Snake case alternative
     ]
     
     return invEmails.some(e => e && e === normalizedUserEmail)
@@ -156,7 +161,18 @@ export default function UserManagement() {
     return allInvestmentData
       .filter(inv => investmentMatchesUser(inv, userId, userEmail))
       .reduce((total, inv) => {
-        const sqm = Number((inv as any).sqm_purchased || (inv as any).sqm || 0)
+        // Check multiple possible SQM field names
+        const sqm = Number(
+          (inv as any).sqm_purchased || 
+          (inv as any).sqm || 
+          (inv as any).SQM ||
+          (inv as any).Sqm ||
+          (inv as any).sqmPurchased ||
+          (inv as any).sqm_bought ||
+          (inv as any).purchased_sqm ||
+          (inv as any).area ||
+          0
+        )
         return total + (Number.isFinite(sqm) ? sqm : 0)
       }, 0)
   }
@@ -340,25 +356,64 @@ export default function UserManagement() {
     
     // Debug logging to help identify data issues
     const userHistory = getUserInvestmentHistory(user.id, user.email || '')
+    const normalizedSearchEmail = normalizeEmail(user.email)
+    
+    // Find ALL investments that might match this user (partial match for debugging)
+    const possibleMatches = [...safeInvestments, ...safeInvestmentRequests].filter((inv: any) => {
+      const allEmailFields = [
+        inv.userEmail, inv.user_email, inv.email, inv.Email, 
+        inv.USER_EMAIL, inv.useremail, inv.emailAddress, inv.email_address
+      ].filter(Boolean).map(e => normalizeEmail(e))
+      
+      // Check if any email field contains part of the search email or vice versa
+      return allEmailFields.some(e => 
+        e.includes(normalizedSearchEmail.split('@')[0]) || 
+        normalizedSearchEmail.includes(e.split('@')[0])
+      )
+    })
+    
     console.log('📊 Investment History Debug for:', user.email, {
       userId: user.id,
       userEmail: user.email,
+      normalizedEmail: normalizedSearchEmail,
       historyCount: userHistory.length,
       history: userHistory,
       totalSqm: getUserPortfolioSqm(user.id, user.email || ''),
       totalInvestment: getUserTotalInvestment(user.id, user.email || ''),
       allInvestmentsCount: safeInvestments.length,
       allRequestsCount: safeInvestmentRequests.length,
-      // Show all investments to help debug
-      sampleInvestments: safeInvestments.slice(0, 5).map((inv: any) => ({
+      // Show possible matches (partial email match)
+      possibleMatchesCount: possibleMatches.length,
+      possibleMatches: possibleMatches.map((inv: any) => ({
+        id: inv.id,
+        allFields: Object.keys(inv),
         userEmail: inv.userEmail,
         user_email: inv.user_email,
         email: inv.email,
+        Email: inv.Email,
         userId: inv.userId,
         user_id: inv.user_id,
+        userName: inv.userName,
+        user_name: inv.user_name,
         sqm: inv.sqm,
         sqm_purchased: inv.sqm_purchased,
-        amount_paid: inv.amount_paid
+        amount_paid: inv.amount_paid,
+        Amount_paid: inv.Amount_paid,
+        totalAmount: inv.totalAmount,
+        status: inv.status
+      })),
+      // Show ALL investments raw (first 10)
+      allInvestmentsRaw: safeInvestments.slice(0, 10).map((inv: any) => ({
+        id: inv.id,
+        fields: Object.keys(inv),
+        emails: {
+          userEmail: inv.userEmail,
+          user_email: inv.user_email,
+          email: inv.email,
+          Email: inv.Email
+        },
+        sqm: inv.sqm || inv.sqm_purchased,
+        amount: inv.amount_paid || inv.Amount_paid || inv.totalAmount
       }))
     })
     
