@@ -15,13 +15,14 @@ import {
   X
 } from 'lucide-react'
 import { User } from '../types'
-import { useUsers, useInvestments, firebaseUtils } from '../hooks/useFirebase'
+import { useUsers, useInvestments, useInvestmentRequests, firebaseUtils } from '../hooks/useFirebase'
 import { exportUsersToCSV } from '../utils/csvExport'
 import toast from 'react-hot-toast'
 
 export default function UserManagement() {
   const { data: users, loading, error } = useUsers()
   const { data: investments } = useInvestments()
+  const { data: investmentRequests } = useInvestmentRequests()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
@@ -44,6 +45,15 @@ export default function UserManagement() {
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
   const safeInvestments = Array.isArray(investments) ? investments : []
+  const safeInvestmentRequests = Array.isArray(investmentRequests) ? investmentRequests : []
+  
+  // Combine investments and approved investment_requests for portfolio calculation
+  const allInvestmentData = [
+    ...safeInvestments,
+    ...safeInvestmentRequests.filter((req: any) => 
+      req.status === 'approved' || req.status === 'completed'
+    )
+  ]
 
   // Normalize status across inconsistent Firestore/user schema variants.
   const getUserStatus = (user: any): 'active' | 'inactive' | 'unknown' => {
@@ -104,38 +114,60 @@ export default function UserManagement() {
     }
   }, [safeUsers.length])
   
-  // Helper function to get user's total investment amount from investments collection
-  const getUserTotalInvestment = (userId: string, userEmail: string) => {
-    return safeInvestments
-      .filter(inv => 
-        inv.userId === userId || 
-        inv.user_id === userId || 
-        inv.userEmail === userEmail || 
-        (inv as any).user_email === userEmail
-      )
-      .reduce((total, inv) => total + ((inv as any).amount_paid || (inv as any).Amount_paid || 0), 0)
-  }
-  
-  // Helper function to get user's portfolio sqm from investments collection
-  const getUserPortfolioSqm = (userId: string, userEmail: string) => {
-    return safeInvestments
-      .filter(inv => 
-        inv.userId === userId || 
-        inv.user_id === userId || 
-        inv.userEmail === userEmail || 
-        (inv as any).user_email === userEmail
-      )
-      .reduce((total, inv) => total + ((inv as any).sqm_purchased || inv.sqm || 0), 0)
+  // Normalize email for comparison (lowercase, trim)
+  const normalizeEmail = (email: string | undefined | null): string => {
+    return (email || '').toLowerCase().trim()
   }
 
-  // Get user's investment history
+  // Check if investment matches user (by ID or email)
+  const investmentMatchesUser = (inv: any, userId: string, userEmail: string): boolean => {
+    const normalizedUserEmail = normalizeEmail(userEmail)
+    
+    // Check various ID fields
+    if (inv.userId === userId || inv.user_id === userId) return true
+    
+    // Check various email fields (case-insensitive)
+    const invEmails = [
+      normalizeEmail(inv.userEmail),
+      normalizeEmail(inv.user_email),
+      normalizeEmail(inv.email)
+    ]
+    
+    return invEmails.some(e => e && e === normalizedUserEmail)
+  }
+
+  // Helper function to get user's total investment amount from investments + approved requests
+  const getUserTotalInvestment = (userId: string, userEmail: string) => {
+    return allInvestmentData
+      .filter(inv => investmentMatchesUser(inv, userId, userEmail))
+      .reduce((total, inv) => {
+        const amount = Number((inv as any).amount_paid || (inv as any).Amount_paid || 0)
+        return total + (Number.isFinite(amount) ? amount : 0)
+      }, 0)
+  }
+  
+  // Helper function to get user's portfolio sqm from investments + approved requests
+  const getUserPortfolioSqm = (userId: string, userEmail: string) => {
+    return allInvestmentData
+      .filter(inv => investmentMatchesUser(inv, userId, userEmail))
+      .reduce((total, inv) => {
+        const sqm = Number((inv as any).sqm_purchased || (inv as any).sqm || 0)
+        return total + (Number.isFinite(sqm) ? sqm : 0)
+      }, 0)
+  }
+
+  // Get user's investment history (from both collections)
   const getUserInvestmentHistory = (userId: string, userEmail: string) => {
-    return safeInvestments.filter(inv => 
-      inv.userId === userId || 
-      inv.user_id === userId || 
-      inv.userEmail === userEmail || 
-      (inv as any).user_email === userEmail
+    // Get from investments collection
+    const fromInvestments = safeInvestments.filter(inv => 
+      investmentMatchesUser(inv, userId, userEmail)
     )
+    // Get from investment_requests collection (approved/completed)
+    const fromRequests = safeInvestmentRequests.filter((inv: any) => 
+      investmentMatchesUser(inv, userId, userEmail) && 
+      (inv.status === 'approved' || inv.status === 'completed' || inv.status === 'pending')
+    )
+    return [...fromInvestments, ...fromRequests]
   }
   
   // Helper function to get user's created_at date for sorting
@@ -300,6 +332,31 @@ export default function UserManagement() {
 
   const handleViewHistory = (user: User) => {
     setSelectedUser(user)
+    
+    // Debug logging to help identify data issues
+    const userHistory = getUserInvestmentHistory(user.id, user.email || '')
+    console.log('📊 Investment History Debug for:', user.email, {
+      userId: user.id,
+      userEmail: user.email,
+      historyCount: userHistory.length,
+      history: userHistory,
+      totalSqm: getUserPortfolioSqm(user.id, user.email || ''),
+      totalInvestment: getUserTotalInvestment(user.id, user.email || ''),
+      allInvestmentsCount: safeInvestments.length,
+      allRequestsCount: safeInvestmentRequests.length,
+      // Show all investments to help debug
+      sampleInvestments: safeInvestments.slice(0, 5).map((inv: any) => ({
+        userEmail: inv.userEmail,
+        user_email: inv.user_email,
+        email: inv.email,
+        userId: inv.userId,
+        user_id: inv.user_id,
+        sqm: inv.sqm,
+        sqm_purchased: inv.sqm_purchased,
+        amount_paid: inv.amount_paid
+      }))
+    })
+    
     setShowHistoryModal(true)
   }
 
