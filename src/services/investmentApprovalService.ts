@@ -107,6 +107,56 @@ export class InvestmentApprovalService {
         transaction.set(investmentRef, investmentData)
         console.log('✅ Investment record created with ID:', investmentRef.id)
 
+        // 2.5. Create plot_ownership record
+        console.log('📋 Step 2.5: Creating plot ownership record')
+        const ownershipRef = doc(collection(db, 'plot_ownership'))
+        const userDoc = await transaction.get(doc(db, 'user_profiles', approvalData.userId))
+        const plotDoc = await transaction.get(doc(db, 'plots', approvalData.plotId))
+        const requestDoc = await transaction.get(doc(db, 'investment_requests', approvalData.requestId))
+        
+        const userData = userDoc.exists() ? userDoc.data() : {}
+        const plotData = plotDoc.exists() ? plotDoc.data() : {}
+        const requestData = requestDoc.exists() ? requestDoc.data() : {}
+        
+        // Get user email and name from request or user profile
+        const userEmail = (requestData as any).userEmail || (requestData as any).user_email || (userData as any).email || ''
+        const userName = (requestData as any).userName || (requestData as any).user_name || (userData as any).full_name || (userData as any).userName || ''
+        const plotName = (requestData as any).plotName || (requestData as any).plot_name || (plotData as any).name || (plotData as any).plotName || ''
+        const projectName = (requestData as any).projectName || (requestData as any).project_title || (plotData as any).projectName || (plotData as any).project_name || ''
+        
+        const ownershipData = {
+          userId: approvalData.userId,
+          user_id: approvalData.userId,
+          userEmail: userEmail,
+          user_email: userEmail,
+          userName: userName,
+          user_name: userName,
+          plotId: approvalData.plotId,
+          plot_id: approvalData.plotId,
+          plotName: plotName,
+          plot_name: plotName,
+          projectId: approvalData.projectId,
+          project_id: approvalData.projectId,
+          projectName: projectName,
+          project_name: projectName,
+          sqm: approvalData.sqmPurchased,
+          sqm_owned: approvalData.sqmPurchased,
+          amountPaid: approvalData.amountPaid,
+          amount_paid: approvalData.amountPaid,
+          pricePerSqm: approvalData.pricePerSqm,
+          price_per_sqm: approvalData.pricePerSqm,
+          investmentId: investmentRef.id,
+          investment_id: investmentRef.id,
+          status: 'active',
+          ownership_type: 'plot_purchase',
+          created_at: serverTimestamp(),
+          createdAt: serverTimestamp(),
+          source: 'investment_request_approval',
+          original_request_id: approvalData.requestId
+        }
+        transaction.set(ownershipRef, ownershipData)
+        console.log('✅ Plot ownership record created with ID:', ownershipRef.id)
+
         // 3. Update plot availability
         console.log('🏠 Step 3: Updating plot availability for plotId:', approvalData.plotId)
         const plotRef = doc(db, 'plots', approvalData.plotId)

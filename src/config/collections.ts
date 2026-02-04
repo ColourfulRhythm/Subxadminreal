@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   PLOTS: 'plots',
   INVESTMENT_REQUESTS: 'investmentRequests',
   INVESTMENTS: 'investments',
+  PLOT_OWNERSHIP: 'plot_ownership',
   WITHDRAWAL_REQUESTS: 'withdrawalRequests',
   REFERRALS: 'referrals',
   NOTIFICATIONS: 'notifications',

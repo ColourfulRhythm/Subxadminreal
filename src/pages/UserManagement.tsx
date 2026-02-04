@@ -22,8 +22,9 @@ import { User } from '../types'
 import { useUsers, useInvestments, useInvestmentRequests, usePlots, firebaseUtils } from '../hooks/useFirebase'
 import { exportUsersToCSV } from '../utils/csvExport'
 import toast from 'react-hot-toast'
-import { collection, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { migrateInvestmentsToOwnership, checkMigrationStatus } from '../utils/migrateInvestmentsToOwnership'
 
 export default function UserManagement() {
   const { data: users, loading, error } = useUsers()
@@ -59,6 +60,12 @@ export default function UserManagement() {
     paymentMethod: 'bank_transfer',
     notes: ''
   })
+  const [migrating, setMigrating] = useState(false)
+  const [migrationStatus, setMigrationStatus] = useState<{
+    totalInvestments: number
+    totalOwnership: number
+    missingOwnership: number
+  } | null>(null)
   
   // Ensure users is an array
   const safeUsers = Array.isArray(users) ? users : []
@@ -672,7 +679,42 @@ export default function UserManagement() {
       const investmentRef = await addDoc(collection(db, 'investments'), investmentData)
       console.log('✅ Investment created with ID:', investmentRef.id)
 
-      // 2. Update plot availability (reduce available SQM)
+      // 2. Create plot_ownership record
+      const ownershipData = {
+        userId: selectedUser.id,
+        user_id: selectedUser.id,
+        userEmail: selectedUser.email,
+        user_email: selectedUser.email,
+        userName: selectedUser.full_name || selectedUser.email,
+        user_name: selectedUser.full_name || selectedUser.email,
+        plotId: investmentForm.plotId,
+        plot_id: investmentForm.plotId,
+        plotName: selectedPlot.name || 'Plot',
+        plot_name: selectedPlot.name || 'Plot',
+        projectId: (selectedPlot as any).projectId || (selectedPlot as any).project_id || '',
+        project_id: (selectedPlot as any).projectId || (selectedPlot as any).project_id || '',
+        projectName: (selectedPlot as any).projectName || (selectedPlot as any).project_name || '',
+        project_name: (selectedPlot as any).projectName || (selectedPlot as any).project_name || '',
+        sqm: sqm,
+        sqm_owned: sqm,
+        amountPaid: amountPaid,
+        amount_paid: amountPaid,
+        pricePerSqm: pricePerSqm,
+        price_per_sqm: pricePerSqm,
+        investmentId: investmentRef.id,
+        investment_id: investmentRef.id,
+        status: 'active',
+        ownership_type: 'plot_purchase',
+        created_at: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        source: 'manual_admin_entry',
+        notes: investmentForm.notes || 'Manual investment added by admin'
+      }
+
+      const ownershipRef = await addDoc(collection(db, 'plot_ownership'), ownershipData)
+      console.log('✅ Plot ownership record created with ID:', ownershipRef.id)
+
+      // 3. Update plot availability (reduce available SQM)
       // Update both camelCase and snake_case versions of the fields
       const plotRef = doc(db, 'plots', investmentForm.plotId)
       await updateDoc(plotRef, {
@@ -689,6 +731,28 @@ export default function UserManagement() {
       })
       console.log('✅ Plot availability updated')
 
+      // 4. Update user profile with investment data
+      const userRef = doc(db, 'user_profiles', selectedUser.id)
+      const userDoc = await getDoc(userRef)
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        const currentTotalInvestment = (userData as any).total_investment || userData.totalInvestment || 0
+        const currentPortfolioSqm = (userData as any).portfolio_sqm || userData.portfolioSqm || 0
+        
+        await updateDoc(userRef, {
+          total_investment: currentTotalInvestment + amountPaid,
+          totalInvestment: currentTotalInvestment + amountPaid,
+          portfolio_sqm: currentPortfolioSqm + sqm,
+          portfolioSqm: currentPortfolioSqm + sqm,
+          last_investment_date: serverTimestamp(),
+          lastInvestmentDate: serverTimestamp(),
+          total_investments: increment(1),
+          totalInvestments: increment(1)
+        })
+        console.log('✅ User profile updated')
+      }
+
       // NOTE: We do NOT create an investment_requests record for manual entries
       // to avoid double-counting. The investment record in 'investments' is sufficient.
 
@@ -701,6 +765,47 @@ export default function UserManagement() {
     }
     setProcessing(false)
   }
+
+  // Check migration status
+  const handleCheckMigrationStatus = async () => {
+    try {
+      const status = await checkMigrationStatus()
+      setMigrationStatus(status)
+      toast.success(`Found ${status.missingOwnership} investments without ownership records`)
+    } catch (error) {
+      toast.error('Failed to check migration status')
+      console.error(error)
+    }
+  }
+
+  // Run migration
+  const handleRunMigration = async () => {
+    if (!confirm('This will create plot_ownership records for all investments that are missing them. Continue?')) {
+      return
+    }
+
+    setMigrating(true)
+    try {
+      const result = await migrateInvestmentsToOwnership()
+      if (result.success) {
+        toast.success(result.message)
+        // Refresh status
+        await handleCheckMigrationStatus()
+      } else {
+        toast.error(result.message)
+      }
+      console.log('Migration result:', result)
+    } catch (error) {
+      toast.error('Migration failed')
+      console.error(error)
+    }
+    setMigrating(false)
+  }
+
+  // Check status on mount
+  useEffect(() => {
+    handleCheckMigrationStatus()
+  }, [])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
@@ -777,6 +882,21 @@ export default function UserManagement() {
           <p className="text-gray-600">Manage platform users and their activities</p>
         </div>
         <div className="flex items-center space-x-3">
+          {migrationStatus && migrationStatus.missingOwnership > 0 && (
+            <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <span className="text-sm text-amber-800">
+                {migrationStatus.missingOwnership} investments need ownership records
+              </span>
+              <button
+                onClick={handleRunMigration}
+                disabled={migrating}
+                className="btn-primary text-sm ml-2 disabled:opacity-50"
+              >
+                {migrating ? 'Migrating...' : 'Migrate Now'}
+              </button>
+            </div>
+          )}
           <button
             onClick={detectDuplicates}
             className="btn-secondary flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
@@ -1102,18 +1222,82 @@ export default function UserManagement() {
                   <label className="block text-sm font-medium text-gray-700">Referral Code</label>
                     <p className="text-sm text-gray-900">{selectedUser.referral_code || 'N/A'}</p>
                 </div>
+              </div>
+
+              {/* Portfolio Details Section */}
+              {(() => {
+                const userInvestments = getUserInvestmentHistory(selectedUser.id, selectedUser.email || '')
+                if (userInvestments.length > 0) {
+                  return (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Portfolio Details ({userInvestments.length} investment{userInvestments.length > 1 ? 's' : ''})</h4>
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {userInvestments.map((inv: any, idx: number) => {
+                          const sqm = Number(inv.sqm_purchased || inv.sqm || 0)
+                          const amountPaid = Number(inv.amount_paid || inv.Amount_paid || inv.totalAmount || 0)
+                          const plotName = inv.plotName || inv.plot_name || 'Unknown Plot'
+                          const projectName = inv.projectName || inv.project_title || inv.project_name
+                          const status = inv.status || 'unknown'
+                          const createdAt = inv.createdAt || inv.created_at
+                          
+                          return (
+                            <div key={inv.id || idx} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{plotName}</p>
+                                  {projectName && (
+                                    <p className="text-xs text-gray-500 mt-0.5">Project: {projectName}</p>
+                                  )}
+                                </div>
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  status === 'approved' || status === 'completed' 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : status === 'pending'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {status}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                                <div>
+                                  <span className="text-gray-500">SQM: </span>
+                                  <span className="font-medium text-gray-900">{sqm.toLocaleString()}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Amount: </span>
+                                  <span className="font-medium text-gray-900">{formatCurrency(amountPaid)}</span>
+                                </div>
+                                {createdAt && (
+                                  <div className="col-span-2">
+                                    <span className="text-gray-500">Date: </span>
+                                    <span className="text-gray-900">{formatDate(createdAt)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Wallet Balance</label>
                     <p className="text-sm text-gray-900">{formatCurrency(selectedUser.wallet_balance || 0)}</p>
-              </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Joined</label>
                     <p className="text-sm text-gray-900">{formatDate(selectedUser.created_at)}</p>
-            </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Last Login</label>
                     <p className="text-sm text-gray-900">{selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}</p>
-          </div>
+                  </div>
                 </div>
 
                 {selectedUser.address && (
