@@ -136,8 +136,18 @@ export default function PlotManagement() {
       
       // Update each plot with correct stats
       let updatedCount = 0
+      let skippedCount = 0
+      
       for (const plot of plots) {
-        const stats = plotStats.get(plot.id)
+        // Validate plot.id is a valid string
+        const plotId = plot?.id
+        if (!plotId || typeof plotId !== 'string') {
+          console.warn('⚠️ Skipping plot with invalid ID:', plot)
+          skippedCount++
+          continue
+        }
+        
+        const stats = plotStats.get(plotId)
         const totalSqm = Number((plot as any).totalSqm || (plot as any).total_sqm || 5000)
         
         const sqmSold = stats?.sqmSold || 0
@@ -145,25 +155,36 @@ export default function PlotManagement() {
         const owners = stats?.owners.size || 0
         const availableSqm = Math.max(0, totalSqm - sqmSold)
         
-        const plotRef = doc(db, 'plots', plot.id)
-        await updateDoc(plotRef, {
-          availableSqm: availableSqm,
-          available_sqm: availableSqm,
-          sold_sqm: sqmSold,
-          soldSqm: sqmSold,
-          totalRevenue: revenue,
-          total_revenue: revenue,
-          totalOwners: owners,
-          total_owners: owners,
-          updatedAt: new Date(),
-          updated_at: new Date()
-        })
-        updatedCount++
+        try {
+          const plotRef = doc(db, 'plots', plotId)
+          await updateDoc(plotRef, {
+            availableSqm: availableSqm,
+            available_sqm: availableSqm,
+            sold_sqm: sqmSold,
+            soldSqm: sqmSold,
+            totalRevenue: revenue,
+            total_revenue: revenue,
+            totalOwners: owners,
+            total_owners: owners,
+            updatedAt: new Date(),
+            updated_at: new Date()
+          })
+          updatedCount++
+          console.log(`✅ Updated plot ${plotId}: sold=${sqmSold}, available=${availableSqm}`)
+        } catch (plotError) {
+          console.error(`❌ Failed to update plot ${plotId}:`, plotError)
+          skippedCount++
+        }
       }
       
-      toast.success(`Synced ${updatedCount} plots with investment data!`)
+      if (skippedCount > 0) {
+        toast.success(`Synced ${updatedCount} plots (${skippedCount} skipped)`)
+      } else {
+        toast.success(`Synced ${updatedCount} plots with investment data!`)
+      }
       console.log('📊 Plot Sync Complete:', {
         plotsUpdated: updatedCount,
+        plotsSkipped: skippedCount,
         investmentsProcessed: safeInvestments.length,
         plotStats: Object.fromEntries(
           Array.from(plotStats.entries()).map(([k, v]) => [k, { ...v, owners: v.owners.size }])
