@@ -27,6 +27,7 @@ interface LayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
+  { name: 'Users (SubAdmin)', href: '/userssubadmin', icon: Users },
   { name: 'Projects', href: '/projects', icon: Building2 },
   { name: 'Plots', href: '/plots', icon: MapPin },
   { name: 'Investments', href: '/investments', icon: TrendingUp },

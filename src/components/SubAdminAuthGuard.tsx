@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { User, onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import LoginForm from './LoginForm'
+import SubAdminLoginForm from './SubAdminLoginForm'
 
-interface AuthGuardProps {
+interface SubAdminAuthGuardProps {
   children: React.ReactNode
 }
 
-export default function AuthGuard({ children }: AuthGuardProps) {
+export default function SubAdminAuthGuard({ children }: SubAdminAuthGuardProps) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,19 +40,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (!user) {
-    return <LoginForm />
+    return <SubAdminLoginForm />
   }
 
-  // Block subadmin emails from accessing main admin dashboard
-  const subAdminEmails = [
-    'godundergod100@gmail.com',
-    'subadmin@focalpointdev.com',
-    'subadmin1@focalpointdev.com',
-  ]
-  
-  const userEmail = user.email?.toLowerCase().trim()
-  if (userEmail && subAdminEmails.some(email => email.toLowerCase() === userEmail)) {
-    // Sign out subadmin user trying to access main admin
+  // Prevent main admin from accessing subadmin page
+  const mainAdminEmail = 'subx@focalpointdev.com'
+  if (user.email?.toLowerCase() === mainAdminEmail.toLowerCase()) {
     signOut(auth)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -60,26 +53,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
             <h3 className="text-lg font-medium text-red-800 mb-2">Access Denied</h3>
             <p className="text-sm text-red-700 mb-4">
-              SubAdmin accounts cannot access the main admin dashboard. Please use the subadmin login at /userssubadmin
+              Main admin credentials cannot access the subadmin dashboard. Please use the main admin login.
             </p>
             <button
-              onClick={() => window.location.href = '/userssubadmin'}
+              onClick={() => window.location.href = '/'}
               className="btn-primary text-sm"
             >
-              Go to SubAdmin Dashboard
+              Go to Main Admin Dashboard
             </button>
           </div>
         </div>
       </div>
     )
-  }
-
-  // Additional security check - only allow specific admin email
-  const mainAdminEmail = 'subx@focalpointdev.com'
-  if (userEmail !== mainAdminEmail.toLowerCase()) {
-    // Sign out unauthorized user
-    signOut(auth)
-    return <LoginForm />
   }
 
   return (
@@ -88,7 +73,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       <div className="hidden lg:block bg-white shadow-sm border-b border-gray-200">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">Subx Admin Dashboard</h1>
+            <h1 className="text-xl font-bold text-gray-900">SubAdmin Dashboard</h1>
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
@@ -99,7 +84,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{user.email}</p>
-                <p className="text-xs text-gray-500">Admin</p>
+                <p className="text-xs text-gray-500">SubAdmin</p>
               </div>
             </div>
             <button
@@ -119,3 +104,4 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     </div>
   )
 }
+

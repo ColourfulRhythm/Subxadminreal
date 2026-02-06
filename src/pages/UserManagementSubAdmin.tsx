@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react'
 import { 
   Search, 
-  Download, 
   Eye, 
-  Edit, 
   Ban, 
   CheckCircle, 
   XCircle,
   TrendingUp,
   Users,
-  History,
   Mail,
-  Save,
   X,
   AlertTriangle,
   Trash2,
@@ -26,7 +22,7 @@ import { collection, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc 
 import { db } from '../lib/firebase'
 import { migrateInvestmentsToOwnership, checkMigrationStatus } from '../utils/migrateInvestmentsToOwnership'
 
-export default function UserManagement() {
+export default function UserManagementSubAdmin() {
   const { data: users, loading, error } = useUsers()
   const { data: investments } = useInvestments()
   const { data: investmentRequests } = useInvestmentRequests()
@@ -38,16 +34,6 @@ export default function UserManagement() {
   const [sortBy, setSortBy] = useState<'latest' | 'oldest' | 'name'>('latest')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showHistoryModal, setShowHistoryModal] = useState(false)
-  const [editForm, setEditForm] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    occupation: '',
-    bank_name: ''
-  })
   const [processing, setProcessing] = useState(false)
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false)
   const [duplicateGroups, setDuplicateGroups] = useState<Array<{email: string, users: User[]}>>([])
@@ -881,8 +867,8 @@ export default function UserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600">Manage platform users and their activities</p>
+          <h1 className="text-2xl font-bold text-gray-900">User Management (SubAdmin)</h1>
+          <p className="text-gray-600">Access user information to make calls and send emails</p>
         </div>
         <div className="flex items-center space-x-3">
           {migrationStatus && (
@@ -909,20 +895,6 @@ export default function UserManagement() {
               </div>
             )
           )}
-          <button
-            onClick={detectDuplicates}
-            className="btn-secondary flex items-center space-x-2 text-orange-600 border-orange-300 hover:bg-orange-50"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            <span>Find Duplicates</span>
-          </button>
-        <button
-          onClick={handleExportUsers}
-          className="btn-secondary flex items-center space-x-2"
-        >
-          <Download className="h-4 w-4" />
-          <span>Export CSV</span>
-        </button>
         </div>
       </div>
 
@@ -1125,20 +1097,6 @@ export default function UserManagement() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleEditUser(user)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="Edit User"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleViewHistory(user)}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Investment History"
-                      >
-                        <History className="h-4 w-4" />
-                      </button>
-                      <button
                         onClick={() => handleAddInvestment(user)}
                         className="text-green-600 hover:text-green-900"
                         title="Add Investment"
@@ -1319,220 +1277,12 @@ export default function UserManagement() {
                   </div>
                 )}
 
-                <div className="flex space-x-2 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowUserModal(false)
-                      handleEditUser(selectedUser)
-                    }}
-                    className="btn-primary flex-1"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit User
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowUserModal(false)
-                      handleViewHistory(selectedUser)
-                    }}
-                    className="btn-secondary flex-1"
-                  >
-                    <History className="h-4 w-4 mr-2" />
-                    View History
-                  </button>
-                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit User Modal */}
-      {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-[500px] shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Edit User</h3>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1"
-                    value={editForm.full_name}
-                    onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Email (Read-only)</label>
-                  <input
-                    type="email"
-                    className="input-field mt-1 bg-gray-100"
-                    value={editForm.email}
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1"
-                    value={editForm.phone}
-                    onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Address</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1"
-                    value={editForm.address}
-                    onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Occupation</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1"
-                    value={editForm.occupation}
-                    onChange={(e) => setEditForm({...editForm, occupation: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Bank Name</label>
-                  <input
-                    type="text"
-                    className="input-field mt-1"
-                    value={editForm.bank_name}
-                    onChange={(e) => setEditForm({...editForm, bank_name: e.target.value})}
-                  />
-                </div>
-
-                <div className="flex space-x-2 pt-4">
-                  <button
-                    onClick={handleSaveUser}
-                    disabled={processing}
-                    className="btn-primary flex-1"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {processing ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={() => setShowEditModal(false)}
-                    className="btn-secondary flex-1"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Investment History Modal */}
-      {showHistoryModal && selectedUser && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-[700px] shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Investment History - {selectedUser.full_name || selectedUser.email}
-                </h3>
-                <button
-                  onClick={() => setShowHistoryModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-blue-600">Total Invested</p>
-                    <p className="text-xl font-bold text-blue-900">
-                      {formatCurrency(getUserTotalInvestment(selectedUser.id, selectedUser.email || ''))}
-                    </p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-green-600">Total SQM</p>
-                    <p className="text-xl font-bold text-green-900">
-                      {getUserPortfolioSqm(selectedUser.id, selectedUser.email || '').toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-600">Investments</p>
-                    <p className="text-xl font-bold text-purple-900">
-                      {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').length}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Investment List */}
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SQM</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').map((inv: any, idx) => (
-                        <tr key={inv.id || idx}>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {inv.project_title || inv.plotName || 'Unknown'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {formatCurrency(inv.amount_paid || inv.Amount_paid || 0)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {inv.sqm_purchased || inv.sqm || 0}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">
-                            {formatDate(inv.created_at || inv.createdAt)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              inv.status === 'completed' || inv.status === 'approved' 
-                                ? 'bg-green-100 text-green-800' 
-                                : inv.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {inv.status || 'unknown'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {getUserInvestmentHistory(selectedUser.id, selectedUser.email || '').length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No investment history found
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Duplicates Modal */}
       {showDuplicatesModal && (
